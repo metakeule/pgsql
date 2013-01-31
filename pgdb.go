@@ -1,13 +1,15 @@
 package pgdb
 
-import ()
+import (
+	"fmt"
+)
 
 type Stringer interface {
 	String() string
 }
 
-type Sql string
-
+//type Sql string
+/*
 func (ø Sql) String() string {
 	return string(ø)
 }
@@ -24,8 +26,13 @@ func (ø Sql) Sql() Sql {
 type Sqler interface {
 	Sql() Sql
 }
+*/
 
 type Database struct {
-	Name          string
-	SchemaStructs []*SchemaStruct
+	Name    string
+	Schemas []*Schema
+}
+
+func ToString(i interface{}) string {
+	return fmt.Sprintf("%v", i)
 }

@@ -5,31 +5,31 @@ import (
 	"strings"
 )
 
-type TableStruct struct {
+type Table struct {
 	Name          string
-	SchemaStruct  *SchemaStruct
-	FieldStructs  []*FieldStruct
+	Schema        *Schema
+	Fields        []*Field
 	PrimaryKeySeq Sqler
-	PrimaryKey    *FieldStruct
+	PrimaryKey    *Field
 }
 
-func Table(name string, options ...interface{}) *TableStruct {
-	t := &TableStruct{
-		Name:         name,
-		FieldStructs: []*FieldStruct{},
+func NewTable(name string, options ...interface{}) *Table {
+	t := &Table{
+		Name:   name,
+		Fields: []*Field{},
 	}
 	for _, option := range options {
 		switch v := option.(type) {
-		case *SchemaStruct:
-			t.SchemaStruct = v
-		case *FieldStruct:
+		case *Schema:
+			t.Schema = v
+		case *Field:
 			t.AddField(v)
 		}
 	}
 	return t
 }
 
-func (ø *TableStruct) createField(field *FieldStruct) string {
+func (ø *Table) createField(field *Field) string {
 	if field.Is(PrimaryKey) {
 		if field.Is(Serial) {
 			return field.Name + " SERIAL PRIMARY KEY"
@@ -56,9 +56,9 @@ func (ø *TableStruct) createField(field *FieldStruct) string {
 	return s
 }
 
-func (ø *TableStruct) Create() Sql {
+func (ø *Table) Create() SqlType {
 	fs := []string{}
-	for _, f := range ø.FieldStructs {
+	for _, f := range ø.Fields {
 		fs = append(fs, ø.createField(f))
 	}
 	str := fmt.Sprintf(
@@ -66,25 +66,25 @@ func (ø *TableStruct) Create() Sql {
 	return Sql(str)
 }
 
-//func (ø *TableStruct) Alter() Sql {
+//func (ø *Table) Alter() Sql {
 //}
 
-func (ø *TableStruct) Drop() Sql {
+func (ø *Table) Drop() SqlType {
 	return Sql("DROP " + string(ø.Sql()))
 }
 
-func (ø *TableStruct) AddField(fields ...*FieldStruct) {
+func (ø *Table) AddField(fields ...*Field) {
 	for _, f := range fields {
-		ø.FieldStructs = append(ø.FieldStructs, f)
+		ø.Fields = append(ø.Fields, f)
 		if f.Is(PrimaryKey) {
 			ø.PrimaryKey = f
 		}
-		f.TableStruct = ø
+		f.Table = ø
 	}
 }
 
-func (ø *TableStruct) Field(name string) (f *FieldStruct) {
-	for _, ff := range ø.FieldStructs {
+func (ø *Table) Field(name string) (f *Field) {
+	for _, ff := range ø.Fields {
 		if ff.Name == name {
 			return ff
 		}
@@ -92,9 +92,9 @@ func (ø *TableStruct) Field(name string) (f *FieldStruct) {
 	return
 }
 
-func (ø *TableStruct) Sql() Sql {
-	if ø.SchemaStruct == nil {
+func (ø *Table) Sql() SqlType {
+	if ø.Schema == nil {
 		return Sql(fmt.Sprintf(`"%s"`, ø.Name))
 	}
-	return Sql(fmt.Sprintf(`%s."%s"`, ø.SchemaStruct.Sql(), ø.Name))
+	return Sql(fmt.Sprintf(`%s."%s"`, ø.Schema.Sql(), ø.Name))
 }

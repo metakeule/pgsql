@@ -4,35 +4,35 @@ import (
 	"fmt"
 )
 
-type SchemaStruct struct {
-	Name         string
-	Database     *Database
-	TableStructs []*TableStruct
+type Schema struct {
+	Name     string
+	Database *Database
+	Tables   []*Table
 }
 
-func Schema(name string, options ...interface{}) *SchemaStruct {
-	s := &SchemaStruct{
-		Name:         name,
-		TableStructs: []*TableStruct{},
+func NewSchema(name string, options ...interface{}) *Schema {
+	s := &Schema{
+		Name:   name,
+		Tables: []*Table{},
 	}
 	for _, option := range options {
 		switch v := option.(type) {
 		case *Database:
 			s.Database = v
-		case *TableStruct:
+		case *Table:
 			s.AddTable(v)
 		}
 	}
 	return s
 }
 
-func (ø *SchemaStruct) AddTable(tables ...*TableStruct) {
+func (ø *Schema) AddTable(tables ...*Table) {
 	for _, f := range tables {
-		ø.TableStructs = append(ø.TableStructs, f)
-		f.SchemaStruct = ø
+		ø.Tables = append(ø.Tables, f)
+		f.Schema = ø
 	}
 }
 
-func (ø *SchemaStruct) Sql() Sql {
+func (ø *Schema) Sql() SqlType {
 	return Sql(fmt.Sprintf("\"%s\"", ø.Name))
 }

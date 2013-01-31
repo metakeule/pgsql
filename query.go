@@ -7,7 +7,7 @@ import (
 
 type Limit int
 
-func (ø Limit) Sql() Sql {
+func (ø Limit) Sql() SqlType {
 	if ø == 0 {
 		return Sql("")
 	}
@@ -16,7 +16,7 @@ func (ø Limit) Sql() Sql {
 
 type Offset int
 
-func (ø Offset) Sql() (s Sql) {
+func (ø Offset) Sql() (s SqlType) {
 	if ø == 0 {
 		s = Sql("")
 	} else {
@@ -26,7 +26,8 @@ func (ø Offset) Sql() (s Sql) {
 }
 
 type Query interface {
-	Sql() (Sql, error)
+	Sql() SqlType
+	String() string
 }
 
 const (
@@ -41,7 +42,7 @@ type Placeholder int
 
 // you can use Placeholder(1), as value to update insert etc. in order
 // to get a prepare statement, that you may execute later on
-func (ø Placeholder) Sql() Sql {
+func (ø Placeholder) Sql() SqlType {
 	return Sql(fmt.Sprintf("$%v", ø))
 }
 
@@ -51,7 +52,7 @@ type Comparer struct {
 	Sign string
 }
 
-func (ø *Comparer) Sql() Sql {
+func (ø *Comparer) Sql() SqlType {
 	return Sql(fmt.Sprintf("%s %s %s", ø.A.Sql(), ø.Sign, ø.B.Sql()))
 }
 
@@ -88,7 +89,7 @@ func In(a Sqler, bs ...Sqler) *InComparer {
 	return &InComparer{a, bs}
 }
 
-func (ø *InComparer) Sql() Sql {
+func (ø *InComparer) Sql() SqlType {
 	bs := []string{}
 	for _, b := range ø.Bs {
 		bs = append(bs, string(b.Sql()))
@@ -109,7 +110,7 @@ func And(sqls ...Sqler) *innerWhere {
 	return &innerWhere{sqls, "AND"}
 }
 
-func (ø *innerWhere) Sql() (s Sql) {
+func (ø *innerWhere) Sql() (s SqlType) {
 	if len(ø.Conditions) == 0 {
 		s = Sql("")
 	} else {
@@ -126,11 +127,11 @@ type Where struct {
 	Inner Sqler
 }
 
-func (ø Where) Sql() (s Sql) {
+func (ø Where) Sql() (s SqlType) {
 	if ø.Inner == nil {
 		s = Sql("")
 	} else {
-		s = Sql("\nWHERE \n\t" + ø.Inner.Sql())
+		s = Sql("\nWHERE \n\t" + ø.Inner.Sql().String())
 	}
 	return
 }
@@ -152,14 +153,21 @@ func (ø *As) Sql() string {
 }
 
 type InsertQuery struct {
-	TableStruct *TableStruct
-	Sets        []map[*FieldStruct]interface{}
+	Table *Table
+	Sets  []map[*Field]interface{}
 }
 
-func Insert(table *TableStruct, first_row Set, rows ...Set) Query {
+func InsertMap(table *Table, m map[*Field]interface{}) Query {
+	return &InsertQuery{
+		Table: table,
+		Sets:  []map[*Field]interface{}{m},
+	}
+}
+
+func Insert(table *Table, first_row Set, rows ...Set) Query {
 	i := &InsertQuery{
-		TableStruct: table,
-		Sets:        []map[*FieldStruct]interface{}{(&first_row).Map()},
+		Table: table,
+		Sets:  []map[*Field]interface{}{(&first_row).Map()},
 	}
 	for _, r := range rows {
 		i.Sets = append(i.Sets, (&r).Map())
@@ -170,56 +178,77 @@ func Insert(table *TableStruct, first_row Set, rows ...Set) Query {
 func (ø *InsertQuery) fieldsAndValues() (fields string, values string, err error) {
 	fi := []string{}
 	va := []string{}
+	fieldorder := []*Field{}
 	for k, _ := range ø.Sets[0] {
+		fieldorder = append(fieldorder, k)
 		fi = append(fi, string(k.Sql()))
 	}
 
 	for _, r := range ø.Sets {
 		ro := []string{}
-		for k, v := range r {
+		for _, k := range fieldorder {
+			v := r[k]
 			//fi = append(fi, string(k.Sql()))
 			if k.Is(NullAllowed) && v == nil {
 				ro = append(ro, "null")
 				continue
 			}
-			sql, e := k.Type.Escape(v)
+			//sql, e := k.Type.Escape(v)
+
+			tv := TypedValue{PgType: k.Type}
+			e := Convert(v, &tv)
 			if e != nil {
 				err = e
 				return
 			}
+
+			sql := tv.Sql()
+			/*
+				if e != nil {
+					err = fmt.Errorf("error in %v: %s", k.Name, e)
+					return
+				}
+			*/
+			//fmt.Println(sql)
 			ro = append(ro, string(sql))
+			//ro = append(ro, string(""))
 		}
-		va = append(va, "("+strings.Join(ro, ", ")+")")
+		rs := strings.Join(ro, ", ")
+		va = append(va, "("+rs+")")
 	}
 	fields = strings.Join(fi, ",")
 	values = strings.Join(va, ",\n\t")
 	return
 }
 
-func (ø *InsertQuery) Sql() (s Sql, err error) {
-	t := ø.TableStruct
+func (ø *InsertQuery) Sql() (s SqlType) {
+	t := ø.Table
 	currval := Sql(fmt.Sprintf("SELECT\n\tcurrval('%s')", t.PrimaryKeySeq))
 	//SELECT currval('\"#{@table.schema.name}\".\"#{@table.primary_key_seq}\"') as id;"
 	fi, va, err := ø.fieldsAndValues()
 	if err != nil {
-		return
+		panic(err)
 	}
 	s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s;\n%s", t.Sql(), fi, va, (&As{currval, "id"}).Sql()))
 	return
 }
 
-type UpdateQuery struct {
-	TableStruct *TableStruct
-	Where       *Where
-	Limit       Limit
-	Set         map[*FieldStruct]interface{}
+func (ø *InsertQuery) String() string {
+	return ø.Sql().String()
 }
 
-func Update(table *TableStruct, options ...interface{}) Query {
+type UpdateQuery struct {
+	Table *Table
+	Where *Where
+	Limit Limit
+	Set   map[*Field]interface{}
+}
+
+func Update(table *Table, options ...interface{}) Query {
 	u := &UpdateQuery{
-		Limit:       Limit(0),
-		TableStruct: table,
-		Where:       &Where{},
+		Limit: Limit(0),
+		Table: table,
+		Where: &Where{},
 	}
 	for _, option := range options {
 		switch v := option.(type) {
@@ -233,6 +262,8 @@ func Update(table *TableStruct, options ...interface{}) Query {
 			u.Set = (&v).Map()
 		case *Set:
 			u.Set = v.Map()
+		case map[*Field]interface{}:
+			u.Set = v
 		}
 	}
 	return u
@@ -241,14 +272,25 @@ func Update(table *TableStruct, options ...interface{}) Query {
 func (ø *UpdateQuery) setString() (set string, err error) {
 	sets := []string{}
 	for k, v := range ø.Set {
-		var valstr Sql
+		var valstr SqlType
 		if k.Is(NullAllowed) && v == nil {
 			valstr = Sql("null")
 		} else {
-			valstr, err = k.Type.Escape(v)
-			if err != nil {
+
+			tv := TypedValue{PgType: k.Type}
+			e := Convert(v, &tv)
+			if e != nil {
+				err = e
 				return
 			}
+
+			valstr = tv.Sql()
+			//valstr, err = k.Type.Escape(v)
+			/*
+				if err != nil {
+					return
+				}
+			*/
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", k.Sql(), valstr))
 	}
@@ -256,11 +298,11 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 	return
 }
 
-func (ø *UpdateQuery) Sql() (s Sql, err error) {
-	t := ø.TableStruct
+func (ø *UpdateQuery) Sql() (s SqlType) {
+	t := ø.Table
 	sets, err := ø.setString()
 	if err != nil {
-		return
+		panic(err)
 	}
 	s = Sql(
 		fmt.Sprintf(
@@ -272,10 +314,14 @@ func (ø *UpdateQuery) Sql() (s Sql, err error) {
 	return
 }
 
+func (ø *UpdateQuery) String() string {
+	return ø.Sql().String()
+}
+
 type DeleteQuery struct {
-	TableStruct *TableStruct
-	Where       *Where
-	Limit       Limit
+	Table *Table
+	Where *Where
+	Limit Limit
 }
 
 func Delete(options ...interface{}) Query {
@@ -290,21 +336,25 @@ func Delete(options ...interface{}) Query {
 			d.Where = &v
 		case Limit:
 			d.Limit = v
-		case *TableStruct:
-			d.TableStruct = v
+		case *Table:
+			d.Table = v
 		}
 	}
 	return d
 }
 
-func (ø *DeleteQuery) Sql() (s Sql, err error) {
+func (ø *DeleteQuery) Sql() (s SqlType) {
 	s = Sql(
 		fmt.Sprintf(
 			"DELETE \n\t* \nFROM \n\t%s %s %s",
-			ø.TableStruct.Sql(),
+			ø.Table.Sql(),
 			ø.Where.Sql(),
 			ø.Limit.Sql()))
 	return
+}
+
+func (ø *DeleteQuery) String() string {
+	return ø.Sql().String()
 }
 
 type Direction bool
@@ -312,7 +362,7 @@ type Direction bool
 var ASC = Direction(true)
 var DESC = Direction(false)
 
-func (ø Direction) Sql() (s Sql) {
+func (ø Direction) Sql() (s SqlType) {
 	if ø {
 		s = Sql("ASC")
 	} else {
@@ -322,17 +372,17 @@ func (ø Direction) Sql() (s Sql) {
 }
 
 type OrderBy struct {
-	*FieldStruct
+	*Field
 	Direction Direction
 }
 
-func (ø *OrderBy) Sql() Sql {
-	return Sql(ø.FieldStruct.Sql() + " " + ø.Direction.Sql())
+func (ø *OrderBy) Sql() SqlType {
+	return Sql(ø.Field.Sql().String() + " " + ø.Direction.Sql().String())
 }
 
-type GroupBy []*FieldStruct
+type GroupBy []*Field
 
-func (ø GroupBy) Sql() Sql {
+func (ø GroupBy) Sql() SqlType {
 	g := []string{}
 	for _, f := range ø {
 		g = append(g, string(f.Sql()))
@@ -342,7 +392,7 @@ func (ø GroupBy) Sql() Sql {
 
 type Distinct bool
 
-func (ø Distinct) Sql() (s Sql) {
+func (ø Distinct) Sql() (s SqlType) {
 	if ø {
 		s = Sql("DISTINCT")
 	} else {
@@ -352,27 +402,27 @@ func (ø Distinct) Sql() (s Sql) {
 }
 
 type SelectQuery struct {
-	Distinct              Distinct
-	TableStruct           Sqler
-	Where                 *Where
-	Limit                 Limit
-	Joins                 []*Join
-	FieldStructs          []*FieldStruct
-	FieldStructsWithAlias []*As
-	Offset                Offset
-	OrderBy               []*OrderBy
-	GroupBy               GroupBy
+	Distinct        Distinct
+	Table           Sqler
+	Where           *Where
+	Limit           Limit
+	Joins           []*Join
+	Fields          []*Field
+	FieldsWithAlias []*As
+	Offset          Offset
+	OrderBy         []*OrderBy
+	GroupBy         GroupBy
 }
 
 func Select(options ...interface{}) Query {
 	s := &SelectQuery{
-		Distinct:              Distinct(false),
-		Joins:                 []*Join{},
-		FieldStructs:          []*FieldStruct{},
-		FieldStructsWithAlias: []*As{},
-		Limit:                 Limit(0),
-		Where:                 &Where{},
-		OrderBy:               []*OrderBy{},
+		Distinct:        Distinct(false),
+		Joins:           []*Join{},
+		Fields:          []*Field{},
+		FieldsWithAlias: []*As{},
+		Limit:           Limit(0),
+		Where:           &Where{},
+		OrderBy:         []*OrderBy{},
 	}
 	for _, option := range options {
 		switch v := option.(type) {
@@ -384,16 +434,16 @@ func Select(options ...interface{}) Query {
 			s.Limit = v
 		case *Join:
 			s.Joins = append(s.Joins, v)
-		case *FieldStruct:
-			s.FieldStructs = append(s.FieldStructs, v)
+		case *Field:
+			s.Fields = append(s.Fields, v)
 		case *As:
-			s.FieldStructsWithAlias = append(s.FieldStructsWithAlias, v)
+			s.FieldsWithAlias = append(s.FieldsWithAlias, v)
 		case Join:
 			s.Joins = append(s.Joins, &v)
-		case FieldStruct:
-			s.FieldStructs = append(s.FieldStructs, &v)
+		case Field:
+			s.Fields = append(s.Fields, &v)
 		case As:
-			s.FieldStructsWithAlias = append(s.FieldStructsWithAlias, &v)
+			s.FieldsWithAlias = append(s.FieldsWithAlias, &v)
 		case Offset:
 			s.Offset = v
 		case *OrderBy:
@@ -404,13 +454,13 @@ func Select(options ...interface{}) Query {
 			s.GroupBy = v
 		default:
 			if sqler, ok := v.(Sqler); ok {
-				s.TableStruct = sqler
+				s.Table = sqler
 			} else {
 				panic("unknown select option " + fmt.Sprintf("%#v", v))
 			}
 		}
 	}
-	if s.TableStruct == nil {
+	if s.Table == nil {
 		panic("no table to select from")
 	}
 	return s
@@ -419,11 +469,11 @@ func Select(options ...interface{}) Query {
 func (ø *SelectQuery) fieldstr() (s string) {
 	f := []string{}
 
-	for _, field := range ø.FieldStructs {
+	for _, field := range ø.Fields {
 		f = append(f, string(field.Sql()))
 	}
 
-	for _, alias := range ø.FieldStructsWithAlias {
+	for _, alias := range ø.FieldsWithAlias {
 		f = append(f, alias.Sql())
 	}
 
@@ -431,14 +481,14 @@ func (ø *SelectQuery) fieldstr() (s string) {
 	return
 }
 
-func (ø *SelectQuery) joins() (s Sql) {
+func (ø *SelectQuery) joins() (s SqlType) {
 	if len(ø.Joins) == 0 {
 		return Sql("")
 	}
 	return Sql("")
 }
 
-func (ø *SelectQuery) group_by() (s Sql) {
+func (ø *SelectQuery) group_by() (s SqlType) {
 	if len(ø.GroupBy) == 0 {
 		return Sql("")
 	}
@@ -462,13 +512,13 @@ func (ø *SelectQuery) group_by() (s Sql) {
 	#{limit}
 	#{offset}"
 */
-func (ø *SelectQuery) Sql() (s Sql, err error) {
+func (ø *SelectQuery) Sql() (s SqlType) {
 	s = Sql(
 		fmt.Sprintf(
 			"SELECT %s \n\t%s \nFROM \n\t%s %s %s %s %s %s",
 			ø.Distinct.Sql(),
 			ø.fieldstr(),
-			ø.TableStruct.Sql(),
+			ø.Table.Sql(),
 			ø.joins(),
 			ø.Where.Sql(),
 			ø.group_by(),
@@ -477,12 +527,16 @@ func (ø *SelectQuery) Sql() (s Sql, err error) {
 	return
 }
 
+func (ø *SelectQuery) String() string {
+	return ø.Sql().String()
+}
+
 type Set []interface{}
 
-func (ø Set) Map() (m map[*FieldStruct]interface{}) {
-	m = map[*FieldStruct]interface{}{}
+func (ø Set) Map() (m map[*Field]interface{}) {
+	m = map[*Field]interface{}{}
 	for i := 0; i < len(ø); i = i + 2 {
-		m[ø[i].(*FieldStruct)] = ø[i+1]
+		m[ø[i].(*Field)] = ø[i+1]
 	}
 	return
 }
