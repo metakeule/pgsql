@@ -43,7 +43,7 @@ var TypeNames = map[Type]string{
 }
 
 var TypeCompatibles = map[Type][]Type{
-	IntType:         []Type{IntType, FloatType},
+	IntType:         []Type{IntType},
 	FloatType:       []Type{IntType, FloatType},
 	TextType:        []Type{TextType, XmlType},
 	BoolType:        []Type{BoolType},
