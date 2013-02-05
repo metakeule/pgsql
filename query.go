@@ -322,12 +322,6 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 			}
 
 			valstr = tv.Sql()
-			//valstr, err = k.Type.Escape(v)
-			/*
-				if err != nil {
-					return
-				}
-			*/
 		}
 		sets = append(sets, fmt.Sprintf("%s = %s", k.Sql(), valstr))
 	}

@@ -59,6 +59,7 @@ func (ø *Field) InSelection(value interface{}) bool {
 }
 
 func (ø *Field) IsValid(value interface{}) bool {
+	fmt.Printf("checking if %#v is a valid %s\n", value, ø.Name)
 	valString := ToString(value)
 	if value == nil && ø.Is(NullAllowed) {
 		return true
