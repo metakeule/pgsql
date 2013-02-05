@@ -11,6 +11,7 @@ type Table struct {
 	Fields        []*Field
 	PrimaryKeySeq Sqler
 	PrimaryKey    *Field
+	Validations   []RowValidator
 }
 
 func NewTable(name string, options ...interface{}) *Table {
@@ -24,9 +25,41 @@ func NewTable(name string, options ...interface{}) *Table {
 			t.Schema = v
 		case *Field:
 			t.AddField(v)
+		default:
+			if val, ok := v.(RowValidator); ok {
+				t.Validations = append(t.Validations, val)
+			}
 		}
 	}
 	return t
+}
+
+func (ø *Table) AddValidator(v ...RowValidator) {
+	for _, val := range v {
+		ø.Validations = append(ø.Validations, val)
+	}
+}
+
+func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) {
+	errs = map[Sqler]error{}
+	pkey := ø.PrimaryKey
+	for _, f := range ø.Fields {
+		// don't validate empty ids
+		if f == pkey && values[f] == nil {
+			continue
+		}
+		err := f.Validate(values[f])
+		if err != nil {
+			errs[f] = err
+		}
+	}
+	for _, val := range ø.Validations {
+		err := val.ValidateRow(values)
+		if err != nil {
+			errs[ø] = err
+		}
+	}
+	return
 }
 
 func (ø *Table) createField(field *Field) string {

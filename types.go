@@ -241,6 +241,13 @@ func (ø *TypedValue) TypedValue() *TypedValue {
 	return ø
 }
 
+func (ø *TypedValue) IsNil() bool {
+	if ø == nil || ø.Value == nil {
+		return true
+	}
+	return false
+}
+
 func (ø *TypedValue) Sql() SqlType {
 	return Sql(fmt.Sprintf("'%s'::%s", ø.Value.String(), ø.PgType.String()))
 }

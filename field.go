@@ -2,14 +2,9 @@ package pgsql
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type flag int
-
-type Validator interface {
-	Valid(interface{}) bool
-}
 
 const (
 	_                    = iota
@@ -32,16 +27,20 @@ type Field struct {
 	Table       *Table
 	ForeignKey  *Field
 	Selection   Selection
-	Validations []Validator
+	Validations []FieldValidator
 }
 
 func NewField(name string, options ...interface{}) *Field {
 	ø := &Field{
 		Name:        name,
 		flags:       hasDefaults,
-		Validations: []Validator{},
+		Validations: []FieldValidator{},
 	}
+	ø.AddValidator(&TypeValidator{ø})
 	ø.Add(options...)
+	if len(ø.Selection) > 0 {
+		ø.AddValidator(&SelectionValidator{ø})
+	}
 	return ø
 }
 
@@ -49,43 +48,29 @@ func (ø *Field) InSelection(value interface{}) bool {
 	if ø.Selection == nil {
 		return true
 	}
-	asString := fmt.Sprintf("%v", value)
+	asString := ToString(value)
 	for _, s := range ø.Selection {
-		if fmt.Sprintf("%v", s) == asString {
+		if ToString(s) == asString {
 			return true
 		}
 	}
 	return false
 }
 
-func (ø *Field) IsValid(value interface{}) bool {
-	fmt.Printf("checking if %#v is a valid %s\n", value, ø.Name)
-	valString := ToString(value)
-	if value == nil && ø.Is(NullAllowed) {
-		return true
+func (ø *Field) AddValidator(v ...FieldValidator) {
+	for _, val := range v {
+		ø.Validations = append(ø.Validations, val)
 	}
-	if !ø.InSelection(value) {
-		return false
-	}
-	switch ø.Type {
-	case IntType:
-		_, err := strconv.ParseInt(valString, 10, 32)
-		if err == nil {
-			return true
-		}
-	case FloatType:
-		_, err := strconv.ParseFloat(valString, 32)
-		if err == nil {
-			return true
-		}
-	default:
-		if IsVarChar(ø.Type) {
-			return len(valString) <= int(ø.Type)
-		} else {
-			return true
+}
+
+func (ø *Field) Validate(value interface{}) (err error) {
+	for _, v := range ø.Validations {
+		err = v.Validate(value)
+		if err != nil {
+			return
 		}
 	}
-	return false
+	return
 }
 
 func (ø *Field) Add(options ...interface{}) {
@@ -102,7 +87,7 @@ func (ø *Field) Add(options ...interface{}) {
 		case Selection:
 			ø.Selection = v
 		default:
-			if val, ok := v.(Validator); ok {
+			if val, ok := v.(FieldValidator); ok {
 				ø.Validations = append(ø.Validations, val)
 				continue
 			}
