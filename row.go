@@ -55,6 +55,18 @@ func (ø *Row) ValidateAll() (errs map[Sqler]error) {
 // the parameters should be given in pairs of
 // *Field and value
 func (ø *Row) Set(o ...interface{}) (err error) {
+	err = ø.set(o)
+	if err != nil {
+		return err
+	}
+	err = ø.Validate()
+	if err != nil {
+		return err
+	}
+	return
+}
+
+func (ø *Row) set(o ...interface{}) (err error) {
 	for i := 0; i < len(o); i = i + 2 {
 		field := o[i].(*Field)
 		tv := &TypedValue{PgType: field.Type}
@@ -65,10 +77,6 @@ func (ø *Row) Set(o ...interface{}) (err error) {
 			return e
 		}
 		ø.values[field] = tv
-	}
-	err = ø.Validate()
-	if err != nil {
-		return err
 	}
 	return
 }
@@ -117,10 +125,16 @@ func (ø *Row) HasId() bool {
 func (ø *Row) Fill(m map[string]interface{}) error {
 	ø.values = map[*Field]*TypedValue{}
 	for k, v := range m {
-		e := ø.Set(ø.Table.Field(k), v)
+		e := ø.set(ø.Table.Field(k), v)
+
 		if e != nil {
+			fmt.Printf("error while filling %s with %v: %s\n", k, v, e.Error())
 			return e
 		}
+	}
+	err := ø.Validate()
+	if err != nil {
+		return err
 	}
 	return nil
 }
