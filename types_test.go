@@ -272,14 +272,14 @@ func TestToTime(t *testing.T) {
 
 	out := ti
 
-	if Convert(out, &r); r != out {
+	if Convert(out, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
-	if Convert(int32(timeUnix), &r); r != out {
+	if Convert(int32(timeUnix), &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
-	if Convert(int64(timeUnix), &r); r != out {
+	if Convert(int64(timeUnix), &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
@@ -290,36 +290,36 @@ func TestToTime(t *testing.T) {
 		}
 	*/
 
-	if Convert(timeString, &r); r != out {
+	if Convert(timeString, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
-	if Convert(typeconverter.Json(timeString), &r); r != out {
+	if Convert(typeconverter.Json(timeString), &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
 	var tv TypedValue
 	Convert(timeUnix, &tv)
 
-	if Convert(&tv, &r); r != out {
+	if Convert(&tv, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
 	Convert(int32(timeUnix), &tv)
 
-	if Convert(&tv, &r); r != out {
+	if Convert(&tv, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
 	Convert(timeString, &tv)
 
-	if Convert(&tv, &r); r != out {
+	if Convert(&tv, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 
 	Convert(typeconverter.Json(timeString), &tv)
 
-	if Convert(&tv, &r); r != out {
+	if Convert(&tv, &r); r.UTC().Format(time.RFC3339) != out.UTC().Format(time.RFC3339) {
 		err(t, "Convert time", r, out)
 	}
 }
