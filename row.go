@@ -48,7 +48,7 @@ func (ø *Row) Get(o ...interface{}) {
 	}
 }
 
-func (ø *Row) Validate() (errs map[Sqler]error) {
+func (ø *Row) ValidateAll() (errs map[Sqler]error) {
 	return ø.Table.Validate(ø.Values())
 }
 
@@ -66,14 +66,14 @@ func (ø *Row) Set(o ...interface{}) (err error) {
 		}
 		ø.values[field] = tv
 	}
-	err = ø.aggregateValidations()
+	err = ø.Validate()
 	if err != nil {
 		return err
 	}
 	return
 }
 
-func (ø *Row) aggregateValidations() (err error) {
+func (ø *Row) Validate() (err error) {
 	if len(ø.setErrors) > 0 {
 		errString := []string{}
 		for _, e := range ø.setErrors {
@@ -81,7 +81,7 @@ func (ø *Row) aggregateValidations() (err error) {
 		}
 		return fmt.Errorf("%s\n", strings.Join(errString, "\n"))
 	}
-	errs := ø.Validate()
+	errs := ø.ValidateAll()
 	if len(errs) > 0 {
 		errString := []string{}
 		for k, e := range errs {
@@ -93,7 +93,7 @@ func (ø *Row) aggregateValidations() (err error) {
 }
 
 func (ø *Row) Save() (err error) {
-	err = ø.aggregateValidations()
+	err = ø.Validate()
 	if err != nil {
 		return fmt.Errorf("Can't save row of %s:\n%s\n", ø.Table.Sql(), err.Error())
 	}

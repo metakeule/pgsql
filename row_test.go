@@ -149,49 +149,49 @@ func TestRowSelect(t *testing.T) {
 func TestRowValidation(t *testing.T) {
 	p := NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD", FIRSTNAME, "12", VITA, "a", AGE, 22)
-	errs := p.Validate()
+	errs := p.ValidateAll()
 	if len(errs) > 0 {
 		err(t, "should have no validation errors", errs, nil)
 	}
 
 	p = NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD", FIRSTNAME, "12", VITA, "a")
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) > 0 {
 		err(t, "should have no validation errors (no age)", errs, nil)
 	}
 
 	p = NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD")
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) > 0 {
 		err(t, "should have no validation errors (just lastname)", errs, nil)
 	}
 
 	p = NewPerson()
 	p.Set(FIRSTNAME, "12", VITA, "a", AGE, 22)
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) != 1 {
 		err(t, "should have one validation error", errs, `Validation Error in "person"."LastName": nil (null) is not allowed`)
 	}
 
 	p = NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückDü", FIRSTNAME, "12", VITA, "a", AGE, 22)
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) != 1 {
 		err(t, "should have one validation error", errs, `Validation Error in "person"."LastName": "DückDückDückDückDückDückDü" with length 26 is too long for a varchar(25)`)
 	}
 
 	p = NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD", FIRSTNAME, "12", VITA, "a", AGE, 21)
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) != 1 {
 		err(t, "should have one validation error", errs, `Validation Error in "person": does not have AGE 22 but 21`)
 	}
 
 	p = NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD", FIRSTNAME, "12", VITA, "hu")
-	errs = p.Validate()
+	errs = p.ValidateAll()
 	if len(errs) != 1 {
 		err(t, "should have one validation error", errs, `Validation Error in "person"."Vita": "hu" is not in the selection: pgsql.Selection{"a", "b"}`)
 	}
