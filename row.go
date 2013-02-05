@@ -55,7 +55,7 @@ func (ø *Row) ValidateAll() (errs map[Sqler]error) {
 // the parameters should be given in pairs of
 // *Field and value
 func (ø *Row) Set(o ...interface{}) (err error) {
-	err = ø.set(o)
+	err = ø.set(o...)
 	if err != nil {
 		return err
 	}
