@@ -17,7 +17,11 @@ const (
 	OnDeleteCascade      // fkey is on delete cascade (default: restrict)
 )
 
-type Selection []interface{}
+type SelectionArray []interface{}
+
+func Selection(o ...interface{}) SelectionArray {
+	return SelectionArray(o)
+}
 
 type Field struct {
 	Name        string
@@ -26,7 +30,7 @@ type Field struct {
 	Type        Type
 	Table       *Table
 	ForeignKey  *Field
-	Selection   Selection
+	Selection   SelectionArray
 	Validations []FieldValidator
 }
 
@@ -84,7 +88,7 @@ func (ø *Field) Add(options ...interface{}) {
 			ø.flags = ø.flags | v
 		case *Field:
 			ø.ForeignKey = v
-		case Selection:
+		case SelectionArray:
 			ø.Selection = v
 		default:
 			if val, ok := v.(FieldValidator); ok {

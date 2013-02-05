@@ -88,7 +88,7 @@ var ID = NewField("Id", IntType, PrimaryKey|Serial)
 var FIRSTNAME = NewField("FirstName", VarChar(123), NullAllowed)
 var LASTNAME = NewField("LastName", VarChar(25))
 var AGE = NewField("Age", IntType, NullAllowed)
-var VITA = NewField("Vita", TextType, NullAllowed, Selection{"a", "b"})
+var VITA = NewField("Vita", TextType, NullAllowed, Selection("a", "b"))
 var PERSON = NewTable("person", ID, FIRSTNAME, LASTNAME, AGE, VITA)
 
 func init() {

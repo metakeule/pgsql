@@ -16,7 +16,7 @@ var LastName = NewField("LastName", VarChar(125))
 var Age = NewField("Age", IntType)
 
 var Role = NewField("Role", IntType, ROLE_TABLE.Field("Id"))
-var Vita = NewField("Vita", TextType, NullAllowed, Selection{"a", "b"})
+var Vita = NewField("Vita", TextType, NullAllowed, Selection("a", "b"))
 var TABLE = NewTable("person", Id, FirstName, LastName, Age, Vita, Role)
 var _ = fmt.Println
 
