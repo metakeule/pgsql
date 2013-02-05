@@ -88,6 +88,18 @@ var TypeConverter = NewTypeConverter()
 
 func Convert(in interface{}, out interface{}) (err error) { return TypeConverter.Convert(in, out) }
 
+func ToSql(i interface{}) Sqler {
+	if s, ok := i.(Sqler); ok {
+		return s
+	}
+	out := &TypedValue{}
+	err := Convert(i, out)
+	if err != nil {
+		panic("can't convert to sql: " + err.Error())
+	}
+	return out
+}
+
 func (ø Type) String() string { return TypeNames[ø] }
 func (ø Type) Type() Type     { return ø }
 
@@ -230,7 +242,7 @@ func (ø *TypedValue) TypedValue() *TypedValue {
 }
 
 func (ø *TypedValue) Sql() SqlType {
-	return SqlType(fmt.Sprintf("'%s'::%s", ø.Value.String(), ø.PgType.String()))
+	return Sql(fmt.Sprintf("'%s'::%s", ø.Value.String(), ø.PgType.String()))
 }
 
 func (ø *TypedValue) String() string { return ø.Value.String() }
