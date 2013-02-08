@@ -129,7 +129,7 @@ func (ø *Row) Set(o ...interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	err = ø.Validate()
+	err = ø.validate()
 	if err != nil {
 		return err
 	}
@@ -177,13 +177,7 @@ func (ø *Row) set(o ...interface{}) (err error) {
 
 var _ = strings.Replace
 
-func (ø *Row) Validate() (err error) {
-	for _, hook := range ø.PreValidate {
-		err = hook(ø)
-		if err != nil {
-			return
-		}
-	}
+func (ø *Row) validate() (err error) {
 	if len(ø.setErrors) > 0 {
 		errString := []string{}
 		for _, e := range ø.setErrors {
@@ -199,6 +193,20 @@ func (ø *Row) Validate() (err error) {
 			errString = append(errString, fmt.Sprintf("\tValidation Error in %s: %s\n", k.Sql(), e.Error()))
 		}
 		return fmt.Errorf("%s\n", strings.Join(errString, "\n"))
+	}
+	return
+}
+
+func (ø *Row) Validate() (err error) {
+	for _, hook := range ø.PreValidate {
+		err = hook(ø)
+		if err != nil {
+			return
+		}
+	}
+	err = ø.validate()
+	if err != nil {
+		return
 	}
 	for _, hook := range ø.PostValidate {
 		err = hook(ø)
@@ -241,7 +249,7 @@ func (ø *Row) Fill(m map[string]interface{}) error {
 			return e
 		}
 	}
-	err := ø.Validate()
+	err := ø.validate()
 	if err != nil {
 		return err
 	}
@@ -302,12 +310,17 @@ type RowIterator struct {
 	sqlRows *sql.Rows
 }
 
-func (ø *RowIterator) Next() (r *Row) {
+func (ø *RowIterator) Next() (r *Row, err error) {
 	if ø.sqlRows.Next() {
-		ø.Row.Scan(ø.sqlRows, ø.Fields...)
-		return ø.Row
+		err = ø.Row.Scan(ø.sqlRows, ø.Fields...)
+		r = ø.Row
+		if err != nil {
+			return
+		}
+		return
 	}
-	return nil
+	r = nil
+	return
 }
 
 func (ø *Row) Find(options ...interface{}) (iter *RowIterator, err error) {
@@ -436,7 +449,7 @@ func (ø *Row) Scan(row *sql.Rows, fields ...*Field) (err error) {
 		}
 		ø.values[f] = tv
 	}
-	ø.Validate()
+
 	for _, hook := range ø.PostGet {
 		err = hook(ø)
 		if err != nil {
