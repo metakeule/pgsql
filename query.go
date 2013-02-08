@@ -146,19 +146,19 @@ func (ø WhereStruct) Sql() (s SqlType) {
 }
 
 func LeftJoin(from *Field, to *Field, as string) *JoinStruct {
-	return &JoinStruct{to.Table, as, LeftJoinType, Equals(from, &fieldInJoin{to, as})}
+	return &JoinStruct{to.Table, as, LeftJoinType, Equals(from, &FieldInJoin{to, as})}
 }
 
 func RightJoin(from *Field, to *Field, as string) *JoinStruct {
-	return &JoinStruct{to.Table, as, RightJoinType, Equals(from, &fieldInJoin{to, as})}
+	return &JoinStruct{to.Table, as, RightJoinType, Equals(from, &FieldInJoin{to, as})}
 }
 
 func Join(from *Field, to *Field, as string) *JoinStruct {
-	return &JoinStruct{to.Table, as, InnerJoinType, Equals(from, &fieldInJoin{to, as})}
+	return &JoinStruct{to.Table, as, InnerJoinType, Equals(from, &FieldInJoin{to, as})}
 }
 
 func FullJoin(from *Field, to *Field, as string) *JoinStruct {
-	return &JoinStruct{to.Table, as, FullJoinType, Equals(from, &fieldInJoin{to, as})}
+	return &JoinStruct{to.Table, as, FullJoinType, Equals(from, &FieldInJoin{to, as})}
 }
 
 var JoinSql = map[JoinType]string{
@@ -168,13 +168,13 @@ var JoinSql = map[JoinType]string{
 	FullJoinType:  "FULL OUTER JOIN",
 }
 
-type fieldInJoin struct {
+type FieldInJoin struct {
 	*Field
-	as string
+	As string
 }
 
-func (ø *fieldInJoin) Sql() SqlType {
-	return Sql(fmt.Sprintf(`"%s"."%s"`, ø.as, ø.Name))
+func (ø *FieldInJoin) Sql() SqlType {
+	return Sql(fmt.Sprintf(`"%s"."%s"`, ø.As, ø.Name))
 }
 
 type JoinStruct struct {
@@ -188,13 +188,14 @@ func (ø *JoinStruct) Sql() SqlType {
 	return Sql(fmt.Sprintf("%s %s \"%s\" ON (%s)", JoinSql[ø.Type], ø.Table.Sql(), ø.As, ø.On.Sql()))
 }
 
-func As(sq Sqler, as string) *AsStruct {
-	return &AsStruct{sq, as}
+func As(sq Sqler, as string, typ Type) *AsStruct {
+	return &AsStruct{sq, as, typ}
 }
 
 type AsStruct struct {
 	Sqler Sqler
 	As    string
+	Type  Type
 }
 
 func (ø *AsStruct) Sql() string {
@@ -258,15 +259,56 @@ func (ø *InsertQuery) fieldsAndValues() (fields string, values string, err erro
 	return
 }
 
+func (ø *InsertQuery) fieldsAndValuesInsert() (fields string, values string, err error) {
+	fi := []string{}
+	va := []string{}
+	fieldorder := []*Field{}
+	for k, _ := range ø.Sets[0] {
+		fieldorder = append(fieldorder, k)
+		fi = append(fi, `"`+k.Name+`"`)
+	}
+
+	for _, r := range ø.Sets {
+		ro := []string{}
+		for _, k := range fieldorder {
+			v := r[k]
+			if v == nil {
+				if k.Is(NullAllowed) {
+					ro = append(ro, "null")
+					continue
+				} else {
+					err = fmt.Errorf("null not allowed for field %s", k.Name)
+					return
+				}
+
+			}
+			tv := TypedValue{PgType: k.Type}
+			e := Convert(v, &tv)
+			if e != nil {
+				err = e
+				return
+			}
+			sql := tv.Sql()
+			ro = append(ro, string(sql))
+		}
+		rs := strings.Join(ro, ", ")
+		va = append(va, "("+rs+")")
+	}
+	fields = strings.Join(fi, ",")
+	values = strings.Join(va, ",\n\t")
+	return
+}
+
 func (ø *InsertQuery) Sql() (s SqlType) {
 	t := ø.Table
-	currval := Sql(fmt.Sprintf("SELECT\n\tcurrval('%s')", t.PrimaryKeySeq))
+	//currval := Sql(fmt.Sprintf("SELECT\n\tcurrval('%s')", t.PrimaryKeySeq))
 	//SELECT currval('\"#{@table.schema.name}\".\"#{@table.primary_key_seq}\"') as id;"
-	fi, va, err := ø.fieldsAndValues()
+	fi, va, err := ø.fieldsAndValuesInsert()
 	if err != nil {
 		panic(err)
 	}
-	s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s;\n%s", t.Sql(), fi, va, (&AsStruct{currval, "id"}).Sql()))
+	//s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s;\n%s", t.Sql(), fi, va, (&AsStruct{currval, "id"}).Sql()))
+	s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s RETURNING id;", t.Sql(), fi, va))
 	return
 }
 
@@ -310,10 +352,10 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 	sets := []string{}
 	for k, v := range ø.Set {
 		var valstr SqlType
-		if k.Is(NullAllowed) && v == nil {
-			valstr = Sql("null")
+		typedv, ok := v.(*TypedValue)
+		if k.Is(NullAllowed) && (v == nil || ok && typedv.Value == nil) {
+			valstr = Sql("Null")
 		} else {
-
 			tv := TypedValue{PgType: k.Type}
 			e := Convert(v, &tv)
 			if e != nil {
@@ -323,7 +365,7 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 
 			valstr = tv.Sql()
 		}
-		sets = append(sets, fmt.Sprintf("%s = %s", k.Sql(), valstr))
+		sets = append(sets, fmt.Sprintf(`"%s" = %s`, k.Name, valstr))
 	}
 	set = strings.Join(sets, ",\n\t")
 	return
@@ -377,7 +419,7 @@ func Delete(options ...interface{}) Query {
 func (ø *DeleteQuery) Sql() (s SqlType) {
 	s = Sql(
 		fmt.Sprintf(
-			"DELETE \n\t* \nFROM \n\t%s %s %s",
+			"DELETE \n\t \nFROM \n\t%s %s %s",
 			ø.Table.Sql(),
 			ø.Where.Sql(),
 			ø.Limit.Sql()))
@@ -481,6 +523,11 @@ func Select(options ...interface{}) Query {
 			s.Joins = append(s.Joins, v)
 		case *Field:
 			s.Fields = append(s.Fields, v)
+		case []*Field:
+			for _, fld := range v {
+				s.Fields = append(s.Fields, fld)
+			}
+			//s.Fields = append(s.Fields, v)
 		case *AsStruct:
 			s.FieldsWithAlias = append(s.FieldsWithAlias, v)
 		case JoinStruct:

@@ -47,11 +47,11 @@ var TypeCompatibles = map[Type][]Type{
 	FloatType:       []Type{IntType, FloatType},
 	TextType:        []Type{TextType, XmlType},
 	BoolType:        []Type{BoolType},
-	DateType:        []Type{DateType, TimeType, TimeStampTZType, TimeStampType},
-	TimeType:        []Type{DateType, TimeType, TimeStampTZType, TimeStampType},
+	DateType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	TimeType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 	XmlType:         []Type{XmlType, TextType},
-	TimeStampTZType: []Type{DateType, TimeType, TimeStampTZType, TimeStampType},
-	TimeStampType:   []Type{DateType, TimeType, TimeStampTZType, TimeStampType},
+	TimeStampTZType: []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	TimeStampType:   []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 }
 
 func (ø Type) IsCompatible(other Type) bool {
@@ -140,6 +140,22 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(t)})
 		case time.Time:
 			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(t)})
+		case *int:
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t)})
+		case *int32:
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(int(*t))})
+		case *int64:
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int64(*t)})
+		case *float64:
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float(*t)})
+		case *float32:
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(*t)})
+		case *string:
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(*t)})
+		case *bool:
+			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(*t)})
+		case *time.Time:
+			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(*t)})
 		case *TypedValue:
 			err = ø.Output.Dispatch(to, t)
 		case TypedValue:
@@ -162,6 +178,14 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Input.SetHandler(stringInstance, inSwitch)
 	ø.Input.SetHandler(boolInstance, inSwitch)
 	ø.Input.SetHandler(timeInstance, inSwitch)
+	ø.Input.SetHandler(&intInstance, inSwitch)
+	ø.Input.SetHandler(&int32Instance, inSwitch)
+	ø.Input.SetHandler(&int64Instance, inSwitch)
+	ø.Input.SetHandler(&float64Instance, inSwitch)
+	ø.Input.SetHandler(&float32Instance, inSwitch)
+	ø.Input.SetHandler(&stringInstance, inSwitch)
+	ø.Input.SetHandler(&boolInstance, inSwitch)
+	ø.Input.SetHandler(&timeInstance, inSwitch)
 	ø.Input.SetHandler(jsonInstance, inSwitch)
 	ø.Input.SetHandler(typedValueInstance, inSwitch)
 	ø.Input.SetHandler(&typedValueInstance, inSwitch)
@@ -249,6 +273,9 @@ func (ø *TypedValue) IsNil() bool {
 }
 
 func (ø *TypedValue) Sql() SqlType {
+	if ø.IsNil() {
+		return Sql("Null")
+	}
 	return Sql(fmt.Sprintf("'%s'::%s", ø.Value.String(), ø.PgType.String()))
 }
 

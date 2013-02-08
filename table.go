@@ -34,6 +34,12 @@ func NewTable(name string, options ...interface{}) *Table {
 	return t
 }
 
+func (ø *Table) NewField(name string, options ...interface{}) (field *Field) {
+	field = NewField(name, options...)
+	ø.AddField(field)
+	return
+}
+
 func (ø *Table) AddValidator(v ...RowValidator) {
 	for _, val := range v {
 		ø.Validations = append(ø.Validations, val)
@@ -48,6 +54,7 @@ func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) 
 		if f == pkey && values[f] == nil {
 			continue
 		}
+
 		err := f.Validate(values[f])
 		if err != nil {
 			errs[f] = err
@@ -79,7 +86,7 @@ func (ø *Table) createField(field *Field) string {
 	}
 
 	if field.ForeignKey != nil {
-		s += " REFERENCES " + string(field.ForeignKey.Sql())
+		s += " REFERENCES " + string(field.ForeignKey.Table.Sql()) + `("` + field.ForeignKey.Name + `")`
 		if field.Is(OnDeleteCascade) {
 			s += " ON DELETE CASCADE"
 		} else {
@@ -103,7 +110,7 @@ func (ø *Table) Create() SqlType {
 //}
 
 func (ø *Table) Drop() SqlType {
-	return Sql("DROP " + string(ø.Sql()))
+	return Sql("DROP TABLE " + string(ø.Sql()))
 }
 
 func (ø *Table) AddField(fields ...*Field) {
