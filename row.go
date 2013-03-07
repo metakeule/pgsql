@@ -155,7 +155,7 @@ func (ø *Row) set(o ...interface{}) (err error) {
 		if o[i+1] == nil {
 			if field.Is(NullAllowed) {
 				ø.values[field] = &TypedValue{PgType: field.Type}
-				return
+				continue
 			} else {
 				e := fmt.Errorf("error when setting field %s to value %#v: Null is not allowed for this field\n", field.Sql(), o[i+1])
 				ø.setErrors = append(ø.setErrors, e)
@@ -487,7 +487,7 @@ func (ø *Row) Update() (err error) {
 		ø.Table,
 		vals,
 		Where(Equals(ø.PrimaryKey, ø.Id())))
-	fmt.Println(u.Sql())
+	// fmt.Println(u.Sql())
 	_, err = ø.Exec(u)
 	for _, hook := range ø.PostUpdate {
 		err = hook(ø)
@@ -510,7 +510,11 @@ func (ø *Row) Values() (vals map[*Field]interface{}) {
 
 func (ø *Row) typedValues() (vals map[*Field]interface{}) {
 	vals = map[*Field]interface{}{}
+	pkey := ø.PrimaryKey
 	for k, v := range ø.values {
+		if k == pkey && v.IsNil() {
+			continue
+		}
 		vals[k] = v
 	}
 	return
@@ -536,7 +540,15 @@ func (ø *Row) Insert() error {
 	if ø.Debug {
 		fmt.Println(u.String())
 	}
-	err := ø.DB.QueryRow(u.String()).Scan(&i)
+	// ø.setSearchPath()
+	//r, err := ø.DB.Query(u.String())
+	r, err := ø.Query(u)
+	if err != nil || r == nil {
+		return err
+	}
+	r.Next()
+	//err := ø.DB.QueryRow(u.String()).Scan(&i)
+	err = r.Scan(&i)
 	//i := 0
 	//i, err := r.LastInsertId()
 	if err != nil {
@@ -603,10 +615,16 @@ func (ø *Row) IsValid(f string, value interface{}) bool {
 	return false
 }
 
+func (ø *Row) setSearchPath() {
+	schemaName := ø.Table.Schema.Name
+	_, _ = ø.DB.Exec(`SET search_path = "` + schemaName + `"`)
+}
+
 func (ø *Row) Exec(query Query, args ...interface{}) (r sql.Result, err error) {
 	if ø.Debug {
 		fmt.Println(query.String())
 	}
+	ø.setSearchPath()
 	r, err = ø.DB.Exec(query.String(), args...)
 	return
 }
@@ -616,6 +634,7 @@ func (ø *Row) Prepare(query Query) (r *sql.Stmt, err error) {
 	if ø.Debug {
 		fmt.Println(s.String())
 	}
+	ø.setSearchPath()
 	r, err = ø.DB.Prepare(s.String())
 	return
 }
@@ -625,6 +644,7 @@ func (ø *Row) Query(query Query, args ...interface{}) (r *sql.Rows, err error) 
 	if ø.Debug {
 		fmt.Println(s.String())
 	}
+	ø.setSearchPath()
 	r, err = ø.DB.Query(s.String(), args...)
 	return
 }
@@ -634,6 +654,7 @@ func (ø *Row) QueryRow(query Query, args ...interface{}) (r *sql.Row) {
 		fmt.Println(query.String())
 	}
 	s := query.Sql()
+	ø.setSearchPath()
 	r = ø.DB.QueryRow(s.String(), args...)
 	return
 }

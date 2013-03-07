@@ -18,7 +18,7 @@ type TypeValidator struct{ *Field }
 
 func (ø *TypeValidator) Validate(value interface{}) error {
 	if value == nil {
-		if !ø.Field.Is(NullAllowed) {
+		if !ø.Field.Is(NullAllowed) && ø.Field.Default == nil {
 			return fmt.Errorf("nil (null) is not allowed")
 
 		}

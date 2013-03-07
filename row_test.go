@@ -94,6 +94,8 @@ var PERSON = NewTable("person", ID, FIRSTNAME, LASTNAME, AGE, VITA)
 func init() {
 	ln := hasLastname("Duck")
 	ag := hasAge(22)
+	schema := NewSchema("test", PERSON)
+	PERSON.Schema = schema
 	PERSON.AddValidator(OrRowValidator{&ln, &ag})
 }
 
@@ -107,6 +109,7 @@ func has(contained string) bool {
 
 func NewPerson() *Row { return NewRow(Fake, PERSON) }
 
+/*
 func TestRowInsert(t *testing.T) {
 	p := NewPerson()
 	p.Set(FIRSTNAME, "Donald", LASTNAME, "Duck")
@@ -116,6 +119,7 @@ func TestRowInsert(t *testing.T) {
 		err(t, "insert statement should contain INSERT", lastQuery(), "INSERT")
 	}
 }
+*/
 
 func TestRowUpdate(t *testing.T) {
 	p := NewPerson()

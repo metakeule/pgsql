@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"fmt"
+	"runtime"
 )
 
 type flag int
@@ -21,6 +22,17 @@ type SelectionArray []interface{}
 
 func Selection(o ...interface{}) SelectionArray {
 	return SelectionArray(o)
+}
+
+func backtrace() (btr []string) {
+	for i := 0; i < 100; i++ {
+		_, file, line, _ := runtime.Caller(2 + i)
+		if file == "" {
+			continue
+		}
+		btr = append(btr, fmt.Sprintf("%v: %v", file, line))
+	}
+	return
 }
 
 type Field struct {

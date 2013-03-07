@@ -5,6 +5,41 @@ import (
 	"strings"
 )
 
+type foreignKey struct {
+	Field           *Field
+	Reference       *Field
+	OnDeleteCascade bool
+}
+
+func (ø *foreignKey) Sql() SqlType {
+	casc := ""
+	if ø.OnDeleteCascade {
+		casc = `ON UPDATE CASCADE ON DELETE CASCADE`
+	}
+	s := `CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) MATCH SIMPLE %s`
+	return Sql(fmt.Sprintf(s,
+		`"`+ø.Field.Table.Name+"_fk_"+ø.Field.Name+`"`,
+		`"`+ø.Field.Name+`"`,
+		`"`+ø.Reference.Table.Name+`"`,
+		`"`+ø.Reference.Name+`"`,
+		casc,
+	))
+}
+
+type unique struct {
+	Fields []*Field
+	Name   string
+}
+
+func (ø *unique) Sql() SqlType {
+	s := `CONSTRAINT %s UNIQUE (%s)`
+	fields := []string{}
+	for _, f := range ø.Fields {
+		fields = append(fields, `"`+f.Name+`"`)
+	}
+	return Sql(fmt.Sprintf(s, `"`+ø.Name+`"`, strings.Join(fields, ",")))
+}
+
 type Table struct {
 	Name          string
 	Schema        *Schema
@@ -12,6 +47,7 @@ type Table struct {
 	PrimaryKeySeq Sqler
 	PrimaryKey    *Field
 	Validations   []RowValidator
+	Constraints   []Sqler
 }
 
 func NewTable(name string, options ...interface{}) *Table {
@@ -66,6 +102,11 @@ func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) 
 			errs[ø] = err
 		}
 	}
+	/*
+		if len(errs) > 0 {
+			errs[Sql("backtrace")] = fmt.Errorf(strings.Join(backtrace(), "\n"))
+		}
+	*/
 	return
 }
 
@@ -77,7 +118,11 @@ func (ø *Table) createField(field *Field) string {
 		return field.Name + " PRIMARY KEY"
 	}
 
-	s := field.Name + " " + field.Type.String()
+	t := field.Type.String()
+	if field.ForeignKey != nil {
+		t = field.ForeignKey.Type.String()
+	}
+	s := field.Name + " " + t
 	if field.Default != nil {
 		s += " DEFAULT " + string(field.Default.Sql())
 	}
@@ -85,15 +130,27 @@ func (ø *Table) createField(field *Field) string {
 		s += " NOT NULL "
 	}
 
-	if field.ForeignKey != nil {
-		s += " REFERENCES " + string(field.ForeignKey.Table.Sql()) + `("` + field.ForeignKey.Name + `")`
-		if field.Is(OnDeleteCascade) {
-			s += " ON DELETE CASCADE"
-		} else {
-			s += " ON DELETE RESTRICT"
+	/*
+		if field.ForeignKey != nil {
+			s += " REFERENCES " + string(field.ForeignKey.Table.Sql()) + `("` + field.ForeignKey.Name + `")`
+			if field.Is(OnDeleteCascade) {
+				s += " ON DELETE CASCADE"
+			} else {
+				s += " ON DELETE RESTRICT"
+			}
 		}
-	}
+	*/
 	return s
+}
+
+func (ø *Table) AddUnique(name string, fields ...*Field) {
+	if len(fields) == 0 {
+		panic("need a field for unique contraint")
+	}
+	uniq := &unique{}
+	uniq.Name = name
+	uniq.Fields = fields
+	ø.Constraints = append(ø.Constraints, uniq)
 }
 
 func (ø *Table) Create() SqlType {
@@ -101,6 +158,11 @@ func (ø *Table) Create() SqlType {
 	for _, f := range ø.Fields {
 		fs = append(fs, ø.createField(f))
 	}
+
+	for _, constr := range ø.Constraints {
+		fs = append(fs, constr.Sql().String())
+	}
+
 	str := fmt.Sprintf(
 		"CREATE TABLE %s \n(%s) ", ø.Sql(), strings.Join(fs, ",\n"))
 	return Sql(str)
@@ -118,6 +180,15 @@ func (ø *Table) AddField(fields ...*Field) {
 		ø.Fields = append(ø.Fields, f)
 		if f.Is(PrimaryKey) {
 			ø.PrimaryKey = f
+		}
+		if f.ForeignKey != nil {
+			fk := &foreignKey{}
+			fk.Field = f
+			fk.Reference = f.ForeignKey
+			if f.Is(OnDeleteCascade) {
+				fk.OnDeleteCascade = true
+			}
+			ø.Constraints = append(ø.Constraints, fk)
 		}
 		f.Table = ø
 	}

@@ -102,20 +102,20 @@ func (ø *InComparer) Sql() SqlType {
 	return Sql(fmt.Sprintf("%s In(%s)", ø.A.Sql(), strings.Join(bs, ", ")))
 }
 
-type innerWhere struct {
+type Condition struct {
 	Conditions []Sqler
 	Sign       string
 }
 
-func Or(sqls ...Sqler) *innerWhere {
-	return &innerWhere{sqls, "OR"}
+func Or(sqls ...Sqler) *Condition {
+	return &Condition{sqls, "OR"}
 }
 
-func And(sqls ...Sqler) *innerWhere {
-	return &innerWhere{sqls, "AND"}
+func And(sqls ...Sqler) *Condition {
+	return &Condition{sqls, "AND"}
 }
 
-func (ø *innerWhere) Sql() (s SqlType) {
+func (ø *Condition) Sql() (s SqlType) {
 	if len(ø.Conditions) == 0 {
 		s = Sql("")
 	} else {

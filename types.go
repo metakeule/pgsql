@@ -2,10 +2,12 @@ package pgsql
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 	// 	"encoding/xml"
 	"github.com/metakeule/typeconverter"
-	_ "strings"
+	"strings"
 )
 
 type SqlType string
@@ -40,10 +42,14 @@ var TypeNames = map[Type]string{
 	DateType:        "date",
 	TimeType:        "time",
 	XmlType:         "xml",
+	IntsType:        "integer[]",
+	StringsType:     "character varying[]",
 }
 
 var TypeCompatibles = map[Type][]Type{
 	IntType:         []Type{IntType},
+	IntsType:        []Type{IntsType},
+	StringsType:     []Type{StringsType},
 	FloatType:       []Type{IntType, FloatType},
 	TextType:        []Type{TextType, XmlType},
 	BoolType:        []Type{BoolType},
@@ -82,6 +88,8 @@ const (
 	XmlType
 	TimeStampTZType
 	TimeStampType
+	IntsType
+	StringsType
 )
 
 var TypeConverter = NewTypeConverter()
@@ -106,9 +114,11 @@ func (ø Type) Type() Type     { return ø }
 var intInstance = int(0)
 var int32Instance = int32(0)
 var int64Instance = int64(0)
+var intsInstance = []int{}
 var float64Instance = float64(0)
 var float32Instance = float32(0)
 var stringInstance = string("")
+var stringsInstance = []string{}
 var jsonInstance = typeconverter.Json("")
 var boolInstance = bool(true)
 var timeInstance = time.Time{}
@@ -117,6 +127,68 @@ var arrInstance = []interface{}{}
 var typedValueInstance = TypedValue{}
 var sqlInstance = Sql("")
 var typeInstance = Type(0)
+
+type intsStringer []int
+
+func (ø intsStringer) String() string {
+	s := `{%s}`
+	str := []string{}
+	for _, i := range ø {
+		str = append(str, fmt.Sprintf("%v", i))
+	}
+	return fmt.Sprintf(s, strings.Join(str, ","))
+}
+
+func (ø intsStringer) Ints() []int {
+	return []int(ø)
+}
+
+type Intser interface {
+	Ints() []int
+}
+
+func stringToInts(ø string) (i []int) {
+	inner := ø[1 : len(ø)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		ii, ſ := strconv.Atoi(s)
+		if ſ == nil {
+			i = append(i, ii)
+		}
+	}
+	return
+}
+
+func stringToStrings(ø string) (ses []string) {
+	inner := ø[1 : len(ø)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		ses = append(ses, s[1:len(ø)-1])
+	}
+	return
+}
+
+type stringsStringer []string
+
+func (ø stringsStringer) String() string {
+	s := `{%s}`
+	str := []string{}
+	for _, i := range ø {
+		str = append(str, fmt.Sprintf(`"%v"`, i))
+	}
+	return fmt.Sprintf(s, strings.Join(str, ","))
+}
+
+func (ø stringsStringer) Strings() []string {
+	return []string(ø)
+}
+
+type Stringser interface {
+	Strings() []string
+}
+
+var intsMatcher = regexp.MustCompile(`^\{([0-9],)*([0-9])\}$`)
+var stringsMatcher = regexp.MustCompile(`^\{("[^"]*",)*("[^"]*")\}$`)
 
 func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 
@@ -135,11 +207,24 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case float32:
 			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(t)})
 		case string:
+			// fmt.Printf("in: %#v, first: %#v last: %#v\n", from, t[0:1], t[len(t)-1:len(t)])
+			if t[0:1] == "{" && t[len(t)-1:len(t)] == "}" {
+				if len(intsMatcher.FindStringSubmatch(t)) > 0 {
+					err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(stringToInts(t))})
+					return
+				}
+				if len(stringsMatcher.FindStringSubmatch(t)) > 0 {
+					err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(stringToStrings(t))})
+					return
+				}
+			}
 			err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(t)})
 		case bool:
 			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(t)})
 		case time.Time:
 			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(t)})
+		case []int:
+			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t)})
 		case *int:
 			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t)})
 		case *int32:
@@ -190,6 +275,8 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Input.SetHandler(typedValueInstance, inSwitch)
 	ø.Input.SetHandler(&typedValueInstance, inSwitch)
 	ø.Input.SetHandler(typeInstance, inSwitch)
+	ø.Input.SetHandler(intsInstance, inSwitch)
+	ø.Input.SetHandler(stringsInstance, inSwitch)
 
 	outSwitch := func(out interface{}, in interface{}) (err error) {
 		switch t := out.(type) {
@@ -223,6 +310,10 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 			*out.(*float32) = float32(in.(*TypedValue).Value.(typeconverter.Floater).Float())
 		case *time.Time:
 			*out.(*time.Time) = in.(*TypedValue).Value.(typeconverter.Timer).Time()
+		case *[]int:
+			*out.(*[]int) = in.(*TypedValue).Value.(Intser).Ints()
+		case *[]string:
+			*out.(*[]string) = in.(*TypedValue).Value.(Stringser).Strings()
 		case *SqlType:
 			*out.(*SqlType) = in.(Sqler).Sql()
 		case *Type:
@@ -245,6 +336,8 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Output.SetHandler(&typedValueInstance, outSwitch)
 	ø.Output.SetHandler(&typeInstance, outSwitch)
 	ø.Output.SetHandler(&sqlInstance, outSwitch)
+	ø.Output.SetHandler(&intsInstance, outSwitch)
+	ø.Output.SetHandler(&stringsInstance, outSwitch)
 	return
 }
 
