@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"fmt"
+	"github.com/metakeule/fastreplace"
 
 	"strings"
 )
@@ -24,6 +25,18 @@ func (ø Offset) Sql() (s SqlType) {
 		s = Sql(fmt.Sprintf("\nOffset %v", ø))
 	}
 	return
+}
+
+type CompiledQuery struct {
+	*fastreplace.FReplace
+	Query Query
+}
+
+func Compile(q Query) (c *CompiledQuery) {
+	return &CompiledQuery{
+		Query:    q,
+		FReplace: fastreplace.NewString("@@", q.String()),
+	}
 }
 
 type Query interface {
@@ -317,10 +330,11 @@ func (ø *InsertQuery) String() string {
 }
 
 type UpdateQuery struct {
-	Table *Table
-	Where *WhereStruct
-	Limit Limit
-	Set   map[*Field]interface{}
+	Table  *Table
+	Where  *WhereStruct
+	Limit  Limit
+	Set    map[*Field]interface{}
+	SetSql []Sqler
 }
 
 func Update(table *Table, options ...interface{}) Query {
@@ -343,6 +357,9 @@ func Update(table *Table, options ...interface{}) Query {
 			u.Set = v.Map()
 		case map[*Field]interface{}:
 			u.Set = v
+		default:
+			sqler := option.(Sqler)
+			u.SetSql = append(u.SetSql, sqler)
 		}
 	}
 	return u
@@ -366,6 +383,10 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 			valstr = tv.Sql()
 		}
 		sets = append(sets, fmt.Sprintf(`"%s" = %s`, k.Name, valstr))
+	}
+
+	for _, sql := range ø.SetSql {
+		sets = append(sets, sql.Sql().String())
 	}
 	set = strings.Join(sets, ",\n\t")
 	return

@@ -2,7 +2,6 @@ package pgsql
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 	// 	"encoding/xml"
@@ -48,8 +47,8 @@ var TypeNames = map[Type]string{
 
 var TypeCompatibles = map[Type][]Type{
 	IntType:         []Type{IntType},
-	IntsType:        []Type{IntsType},
-	StringsType:     []Type{StringsType},
+	IntsType:        []Type{IntsType, TextType},
+	StringsType:     []Type{StringsType, TextType},
 	FloatType:       []Type{IntType, FloatType},
 	TextType:        []Type{TextType, XmlType},
 	BoolType:        []Type{BoolType},
@@ -147,27 +146,6 @@ type Intser interface {
 	Ints() []int
 }
 
-func stringToInts(ø string) (i []int) {
-	inner := ø[1 : len(ø)-1]
-	a := strings.Split(inner, ",")
-	for _, s := range a {
-		ii, ſ := strconv.Atoi(s)
-		if ſ == nil {
-			i = append(i, ii)
-		}
-	}
-	return
-}
-
-func stringToStrings(ø string) (ses []string) {
-	inner := ø[1 : len(ø)-1]
-	a := strings.Split(inner, ",")
-	for _, s := range a {
-		ses = append(ses, s[1:len(ø)-1])
-	}
-	return
-}
-
 type stringsStringer []string
 
 func (ø stringsStringer) String() string {
@@ -187,11 +165,68 @@ type Stringser interface {
 	Strings() []string
 }
 
-var intsMatcher = regexp.MustCompile(`^\{([0-9],)*([0-9])\}$`)
-var stringsMatcher = regexp.MustCompile(`^\{("[^"]*",)*("[^"]*")\}$`)
+/*
+var intsMatcher = regexp.MustCompile(`^\{("?[0-9]"?,)*("?[0-9]"?)\}$`)
+var stringsMatcher = regexp.MustCompile(`^\{([^,]*,)*([^,]*)\}$`)
+
+func typedValForString(t string) (tv *TypedValue) {
+	tv = &TypedValue{}
+	if t[0:1] == "{" && t[len(t)-1:len(t)] == "}" {
+		if len(intsMatcher.FindStringSubmatch(t)) > 0 {
+			tv.PgType = IntsType
+			tv.Value = intsStringer(stringToInts(t))
+			return
+		}
+		if len(stringsMatcher.FindStringSubmatch(t)) > 0 {
+			tv.PgType = StringsType
+			tv.Value = stringsStringer(stringToStrings(t))
+			return
+		}
+	}
+	tv.PgType = TextType
+	tv.Value = typeconverter.String(t)
+	return
+}
+*/
+
+type pgInterpretedString struct {
+	typeconverter.StringType
+}
+
+func NewPgInterpretedString(s string) (ip *pgInterpretedString) {
+	ip = &pgInterpretedString{}
+	ip.StringType = typeconverter.String(s)
+	return
+}
+
+func (ø *pgInterpretedString) Ints() (i []int) {
+	str := ø.StringType.String()
+	inner := str[1 : len(str)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		ii, ſ := strconv.Atoi(strings.Trim(s, `"`))
+		if ſ == nil {
+			i = append(i, ii)
+		}
+	}
+	return
+	// return stringToInts(ø.StringType.String())
+}
+
+func (ø *pgInterpretedString) Strings() (ses []string) {
+	str := ø.StringType.String()
+	inner := str[1 : len(str)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		s_tr := strings.Trim(s, `"`)
+		ses = append(ses, s_tr)
+	}
+	return
+}
+
+//typeconverter.String
 
 func NewTypeConverter() (ø *typeconverter.BasicConverter) {
-
 	ø = typeconverter.New()
 
 	inSwitch := func(from interface{}, to interface{}) (err error) {
@@ -207,24 +242,17 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case float32:
 			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(t)})
 		case string:
-			// fmt.Printf("in: %#v, first: %#v last: %#v\n", from, t[0:1], t[len(t)-1:len(t)])
-			if t[0:1] == "{" && t[len(t)-1:len(t)] == "}" {
-				if len(intsMatcher.FindStringSubmatch(t)) > 0 {
-					err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(stringToInts(t))})
-					return
-				}
-				if len(stringsMatcher.FindStringSubmatch(t)) > 0 {
-					err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(stringToStrings(t))})
-					return
-				}
-			}
-			err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(t)})
+			// err = ø.Output.Dispatch(to, typedValForString(t))
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(t)})
+			//err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.String(t)})
 		case bool:
 			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(t)})
 		case time.Time:
 			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(t)})
 		case []int:
 			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t)})
+		case []string:
+			err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(t)})
 		case *int:
 			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t)})
 		case *int32:
@@ -236,7 +264,9 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case *float32:
 			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(*t)})
 		case *string:
-			err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(*t)})
+			// err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(*t)})
+			// err = ø.Output.Dispatch(to, typedValForString(*t))
 		case *bool:
 			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(*t)})
 		case *time.Time:
@@ -293,7 +323,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 				if oTyped.Type().IsCompatible(iTyped.Type()) {
 					oTyped.Value = iTyped.Value
 				} else {
-					return fmt.Errorf("value %s type %s is incompatible with type %s", iTyped.Value.String(), iTyped.Type().String(), oTyped.Type().String())
+					return fmt.Errorf("value %s type %s is incompatible with type %s\n%s", iTyped.Value.String(), iTyped.Type().String(), oTyped.Type().String(), strings.Join(backtrace(), "\n"))
 				}
 			}
 		case *bool:

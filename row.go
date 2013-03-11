@@ -304,26 +304,22 @@ func (ø *Row) Id() SqlType {
 	return idVal
 }
 
-type RowIterator struct {
-	*Row
-	Fields  []*Field
-	sqlRows *sql.Rows
+type Rows struct {
+	*sql.Rows // inherits from *sql.Rows and is fully compatible
+	row       *Row
+	Fields    []*Field
 }
 
-func (ø *RowIterator) Next() (r *Row, err error) {
-	if ø.sqlRows.Next() {
-		err = ø.Row.Scan(ø.sqlRows, ø.Fields...)
-		r = ø.Row
-		if err != nil {
-			return
-		}
-		return
+// scan the result into a row
+func (ø *Rows) ScanRow() (row *Row, ſ error) {
+	ſ = ø.row.Scan(ø.Rows, ø.Fields...)
+	if ſ == nil {
+		row = ø.row
 	}
-	r = nil
 	return
 }
 
-func (ø *Row) Find(options ...interface{}) (iter *RowIterator, err error) {
+func (ø *Row) Find(options ...interface{}) (rows *Rows, err error) {
 	sel := ø.selectquery(options...)
 	r, err := ø.Query(sel)
 
@@ -331,13 +327,13 @@ func (ø *Row) Find(options ...interface{}) (iter *RowIterator, err error) {
 		return
 	}
 
-	iter = &RowIterator{
-		Row:     ø,
-		Fields:  sel.Fields,
-		sqlRows: r,
+	rows = &Rows{
+		Rows:   r,
+		row:    ø,
+		Fields: sel.Fields,
 	}
 	for _, aliasF := range sel.FieldsWithAlias {
-		iter.Fields = append(iter.Fields, NewField(aliasF.As, aliasF.Type))
+		rows.Fields = append(rows.Fields, NewField(aliasF.As, aliasF.Type))
 	}
 
 	return
@@ -379,6 +375,7 @@ func (ø *Row) Scan(row *sql.Rows, fields ...*Field) (err error) {
 				var bl bool
 				scanF = append(scanF, &bl)
 			}
+
 		case TimeStampTZType, TimeStampType, DateType, TimeType:
 			var t time.Time
 			scanF = append(scanF, &t)
@@ -466,6 +463,9 @@ func (ø *Row) Load(id int) (err error) {
 		return
 	}
 	row, err := ø.Select(f, Where(Equals(ø.PrimaryKey, ø.Id())))
+	if err != nil {
+		return
+	}
 	if !row.Next() {
 		return fmt.Errorf("no row for %v", id)
 	}
@@ -481,7 +481,7 @@ func (ø *Row) Update() (err error) {
 		}
 	}
 	vals := ø.typedValues()
-	//fmt.Println(vals)
+	// fmt.Println(vals)
 	delete(vals, ø.PrimaryKey)
 	u := Update(
 		ø.Table,
@@ -537,9 +537,6 @@ func (ø *Row) Insert() error {
 		}
 	*/
 	i := 0
-	if ø.Debug {
-		fmt.Println(u.String())
-	}
 	// ø.setSearchPath()
 	//r, err := ø.DB.Query(u.String())
 	r, err := ø.Query(u)
@@ -592,7 +589,11 @@ func (ø *Row) selectquery(objects ...interface{}) (s *SelectQuery) {
 	for i, o := range objects {
 		snew[i+1] = o
 	}
-	return Select(snew...).(*SelectQuery)
+	s = Select(snew...).(*SelectQuery)
+	if len(s.Fields) == 0 && len(s.FieldsWithAlias) == 0 {
+		s.Fields = ø.Fields
+	}
+	return
 }
 
 func (ø *Row) Select(objects ...interface{}) (r *sql.Rows, err error) {
@@ -615,16 +616,27 @@ func (ø *Row) IsValid(f string, value interface{}) bool {
 	return false
 }
 
+func (ø *Row) isTransaction() (is bool) {
+	_, is = ø.DB.(*sql.Tx)
+	return
+}
+
 func (ø *Row) setSearchPath() {
-	schemaName := ø.Table.Schema.Name
-	_, _ = ø.DB.Exec(`SET search_path = "` + schemaName + `"`)
+	if !ø.isTransaction() {
+		schemaName := ø.Table.Schema.Name
+		sql := `SET search_path = "` + schemaName + `"`
+		if ø.Debug {
+			fmt.Println(sql)
+		}
+		_, _ = ø.DB.Exec(sql)
+	}
 }
 
 func (ø *Row) Exec(query Query, args ...interface{}) (r sql.Result, err error) {
+	ø.setSearchPath()
 	if ø.Debug {
 		fmt.Println(query.String())
 	}
-	ø.setSearchPath()
 	r, err = ø.DB.Exec(query.String(), args...)
 	return
 }
@@ -641,10 +653,10 @@ func (ø *Row) Prepare(query Query) (r *sql.Stmt, err error) {
 
 func (ø *Row) Query(query Query, args ...interface{}) (r *sql.Rows, err error) {
 	s := query.Sql()
+	ø.setSearchPath()
 	if ø.Debug {
 		fmt.Println(s.String())
 	}
-	ø.setSearchPath()
 	r, err = ø.DB.Query(s.String(), args...)
 	return
 }
