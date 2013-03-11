@@ -150,25 +150,27 @@ func (ø *Row) Unset(o ...*Field) {
 
 func (ø *Row) set(o ...interface{}) (err error) {
 	for i := 0; i < len(o); i = i + 2 {
-
 		field := o[i].(*Field)
-		if o[i+1] == nil {
-			if field.Is(NullAllowed) {
-				ø.values[field] = &TypedValue{PgType: field.Type}
-				continue
-			} else {
-				e := fmt.Errorf("error when setting field %s to value %#v: Null is not allowed for this field\n", field.Sql(), o[i+1])
-				ø.setErrors = append(ø.setErrors, e)
-				return e
-			}
+		var tv *TypedValue
+		tv, err = field.Value(o[i+1])
+		/*
+			if o[i+1] == nil {
+				if field.Is(NullAllowed) {
+					ø.values[field] = &TypedValue{PgType: field.Type}
+					continue
+				} else {
+					e := fmt.Errorf("error when setting field %s to value %#v: Null is not allowed for this field\n", field.Sql(), o[i+1])
+					ø.setErrors = append(ø.setErrors, e)
+					return e
+				}
 
-		}
-		tv := &TypedValue{PgType: field.Type}
-		err = Convert(o[i+1], tv)
+			}
+			tv := &TypedValue{PgType: field.Type}
+			err = Convert(o[i+1], tv)
+		*/
 		if err != nil {
-			e := fmt.Errorf("error when setting field %s to value %#v: %s\n", field.Sql(), o[i+1], err.Error())
-			ø.setErrors = append(ø.setErrors, e)
-			return e
+			ø.setErrors = append(ø.setErrors, err)
+			return
 		}
 		ø.values[field] = tv
 	}

@@ -28,14 +28,35 @@ func (ø Offset) Sql() (s SqlType) {
 }
 
 type CompiledQuery struct {
-	*fastreplace.FReplace
-	Query Query
+	freplace *fastreplace.FReplace
+	Query    Query
+}
+
+type CompiledQueryInstance struct {
+	inst *fastreplace.Instance
+}
+
+func (ø *CompiledQueryInstance) Assign(key string, sql Sqler) {
+	ø.inst.AssignString(key, sql.Sql().String())
+}
+
+func (ø *CompiledQueryInstance) AssignValue(key string, val string) {
+	userinput := strings.Replace(val, "$userinput$", "", -1)
+	ø.inst.AssignString(key, "$userinput$"+userinput+"$userinput$")
+}
+
+func (ø *CompiledQueryInstance) Sql() SqlType {
+	return Sql(ø.inst.String())
+}
+
+func (ø *CompiledQuery) Instance() (c *CompiledQueryInstance) {
+	return &CompiledQueryInstance{ø.freplace.Instance()}
 }
 
 func Compile(q Query) (c *CompiledQuery) {
 	return &CompiledQuery{
 		Query:    q,
-		FReplace: fastreplace.NewString("@@", q.String()),
+		freplace: fastreplace.NewString("@@", q.String()),
 	}
 }
 
