@@ -33,7 +33,7 @@ type CompiledQuery struct {
 }
 
 type CompiledQueryInstance struct {
-	inst *fastreplace.Instance
+	inst fastreplace.Replacer
 }
 
 func (ø *CompiledQueryInstance) Assign(key string, sql Sqler) {
@@ -53,11 +53,13 @@ func (ø *CompiledQuery) Instance() (c *CompiledQueryInstance) {
 	return &CompiledQueryInstance{ø.freplace.Instance()}
 }
 
-func Compile(q Query) (c *CompiledQuery) {
-	return &CompiledQuery{
+func Compile(q Query) (c *CompiledQuery, ſ error) {
+	fr, ſ := fastreplace.NewString("@@", q.String())
+	c = &CompiledQuery{
 		Query:    q,
-		freplace: fastreplace.NewString("@@", q.String()),
+		freplace: fr,
 	}
+	return
 }
 
 type Query interface {

@@ -26,8 +26,13 @@ func Selection(o ...interface{}) SelectionArray {
 
 func backtrace() (btr []string) {
 	for i := 0; i < 100; i++ {
-		_, file, line, _ := runtime.Caller(2 + i)
+		pc, file, line, _ := runtime.Caller(2 + i)
 		if file == "" {
+			continue
+		}
+		f := runtime.FuncForPC(pc)
+		if f != nil {
+			btr = append(btr, fmt.Sprintf("%v: %v\n\t%v()", file, line, f.Name()))
 			continue
 		}
 		btr = append(btr, fmt.Sprintf("%v: %v", file, line))
@@ -79,6 +84,26 @@ func (ø *Field) AddValidator(v ...FieldValidator) {
 	}
 }
 
+// return the value in a typed fashion converted to
+// the required postgres type
+func (ø *Field) Value(val interface{}) (tv *TypedValue, err error) {
+	if val == nil {
+		if ø.Is(NullAllowed) {
+			tv = &TypedValue{PgType: ø.Type}
+			return
+		} else {
+			err = fmt.Errorf("error when setting field %s to value %#v: Null is not allowed for this field\n", ø.Sql(), val)
+			return
+		}
+	}
+	tv = &TypedValue{PgType: ø.Type}
+	e := Convert(val, tv)
+	if e != nil {
+		err = fmt.Errorf("error when setting field %s to value %#v: %s\n", ø.Sql(), val, e.Error())
+	}
+	return
+}
+
 func (ø *Field) Validate(value interface{}) (err error) {
 	for _, v := range ø.Validations {
 		err = v.Validate(value)
@@ -100,6 +125,7 @@ func (ø *Field) Add(options ...interface{}) {
 			ø.flags = ø.flags | v
 		case *Field:
 			ø.ForeignKey = v
+			ø.Type = v.Type
 		case SelectionArray:
 			ø.Selection = v
 		default:
