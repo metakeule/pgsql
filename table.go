@@ -20,7 +20,7 @@ func (ø *foreignKey) Sql() SqlType {
 	return Sql(fmt.Sprintf(s,
 		`"`+ø.Field.Table.Name+"_fk_"+ø.Field.Name+`"`,
 		`"`+ø.Field.Name+`"`,
-		`"`+ø.Reference.Table.Name+`"`,
+		ø.Reference.Table.Sql(),
 		`"`+ø.Reference.Name+`"`,
 		casc,
 	))
@@ -41,13 +41,13 @@ func (ø *unique) Sql() SqlType {
 }
 
 type Table struct {
-	Name          string
-	Schema        *Schema
-	Fields        []*Field
-	PrimaryKeySeq Sqler
-	PrimaryKey    *Field
-	Validations   []RowValidator
-	Constraints   []Sqler
+	Name   string
+	Schema *Schema
+	Fields []*Field
+	//	PrimaryKeySeq Sqler
+	PrimaryKey  []*Field
+	Validations []RowValidator
+	Constraints []Sqler
 }
 
 func NewTable(name string, options ...interface{}) *Table {
@@ -82,12 +82,21 @@ func (ø *Table) AddValidator(v ...RowValidator) {
 	}
 }
 
+func (ø *Table) IsPrimaryKey(f *Field) (is bool) {
+	for _, pk := range ø.PrimaryKey {
+		if pk == f {
+			return true
+		}
+	}
+	return false
+}
+
 func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) {
 	errs = map[Sqler]error{}
-	pkey := ø.PrimaryKey
+	//pkey := ø.PrimaryKey
 	for _, f := range ø.Fields {
 		// don't validate empty ids
-		if f == pkey && values[f] == nil {
+		if ø.IsPrimaryKey(f) && values[f] == nil {
 			continue
 		}
 
@@ -111,24 +120,30 @@ func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) 
 }
 
 func (ø *Table) createField(field *Field) string {
-	if field.Is(PrimaryKey) {
-		if field.Is(Serial) {
-			return field.Name + " SERIAL PRIMARY KEY"
-		}
-		return field.Name + " PRIMARY KEY"
-	}
-
 	t := field.Type.String()
 	if field.ForeignKey != nil {
 		t = field.ForeignKey.Type.String()
 	}
-	s := field.Name + " " + t
+	s := field.Name
+	//if field.Is(PrimaryKey) {
+	if field.Is(Serial) {
+		s += " SERIAL"
+	} else {
+		s += " " + t
+	}
+
 	if field.Default != nil {
 		s += " DEFAULT " + string(field.Default.Sql())
 	}
 	if !field.Is(NullAllowed) {
 		s += " NOT NULL "
 	}
+
+	if field.Is(UuidGenerate) {
+		s += " DEFAULT uuid_generate_v4()"
+	}
+	//	s += " PRIMARY KEY"
+	//}
 
 	/*
 		if field.ForeignKey != nil {
@@ -155,8 +170,17 @@ func (ø *Table) AddUnique(name string, fields ...*Field) {
 
 func (ø *Table) Create() SqlType {
 	fs := []string{}
+	pkeys := []string{}
+
 	for _, f := range ø.Fields {
 		fs = append(fs, ø.createField(f))
+		if f.Is(PrimaryKey) {
+			pkeys = append(pkeys, f.Name)
+		}
+	}
+
+	if len(pkeys) > 0 {
+		fs = append(fs, fmt.Sprintf("PRIMARY KEY(%s)", strings.Join(pkeys, ",")))
 	}
 
 	for _, constr := range ø.Constraints {
@@ -179,7 +203,7 @@ func (ø *Table) AddField(fields ...*Field) {
 	for _, f := range fields {
 		ø.Fields = append(ø.Fields, f)
 		if f.Is(PrimaryKey) {
-			ø.PrimaryKey = f
+			ø.PrimaryKey = append(ø.PrimaryKey, f)
 		}
 		if f.ForeignKey != nil {
 			fk := &foreignKey{}

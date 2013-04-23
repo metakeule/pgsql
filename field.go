@@ -15,6 +15,7 @@ const (
 	Indexed              // field is indexed
 	Unique               // field is unique
 	Serial               // field is a serial field
+	UuidGenerate         // generate a uuid
 	OnDeleteCascade      // fkey is on delete cascade (default: restrict)
 )
 

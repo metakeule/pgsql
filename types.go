@@ -41,9 +41,13 @@ var TypeNames = map[Type]string{
 	DateType:        "date",
 	TimeType:        "time",
 	XmlType:         "xml",
+	HtmlType:        "text",
 	IntsType:        "integer[]",
 	StringsType:     "character varying[]",
+	UuidType:        "uuid",
 }
+
+// uuid NOT NULL DEFAULT uuid_generate_v4()
 
 var TypeCompatibles = map[Type][]Type{
 	IntType:         []Type{IntType},
@@ -55,6 +59,8 @@ var TypeCompatibles = map[Type][]Type{
 	DateType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 	TimeType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 	XmlType:         []Type{XmlType, TextType},
+	HtmlType:        []Type{HtmlType, TextType},
+	UuidType:        []Type{UuidType, TextType},
 	TimeStampTZType: []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 	TimeStampType:   []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 }
@@ -89,6 +95,8 @@ const (
 	TimeStampType
 	IntsType
 	StringsType
+	HtmlType
+	UuidType
 )
 
 var TypeConverter = NewTypeConverter()
@@ -199,6 +207,16 @@ func NewPgInterpretedString(s string) (ip *pgInterpretedString) {
 	return
 }
 
+func (ø *pgInterpretedString) Int() (i int) {
+	str := ø.StringType.String()
+	i, ſ := strconv.Atoi(str)
+	if ſ != nil {
+		panic(ſ.Error())
+	}
+	return
+	// return stringToInts(ø.StringType.String())
+}
+
 func (ø *pgInterpretedString) Ints() (i []int) {
 	str := ø.StringType.String()
 	inner := str[1 : len(str)-1]
@@ -243,6 +261,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(t)})
 		case string:
 			// err = ø.Output.Dispatch(to, typedValForString(t))
+			//fmt.Printf("as interpreted string: %#v\n", t)
 			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(t)})
 			//err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.String(t)})
 		case bool:
@@ -264,6 +283,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case *float32:
 			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(*t)})
 		case *string:
+			//fmt.Printf("as interpreted *string: %#v\n", *t)
 			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(*t)})
 			// err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(*t)})
 			// err = ø.Output.Dispatch(to, typedValForString(*t))
@@ -313,6 +333,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case *TypedValue:
 			iTyped := in.(Valuer).TypedValue()
 			oTyped := out.(*TypedValue)
+			//fmt.Printf("in: %#v (%#v) out: %#v (%#v)\n", iTyped, iTyped.Type(), oTyped, oTyped.Type())
 			if int(oTyped.Type()) == 0 {
 				*oTyped = *iTyped
 				return
@@ -329,6 +350,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case *bool:
 			*out.(*bool) = in.(*TypedValue).Value.(typeconverter.Booler).Bool()
 		case *int:
+			//fmt.Printf("typed values: %#v\n", in.(*TypedValue))
 			*out.(*int) = in.(*TypedValue).Value.(typeconverter.Inter).Int()
 		case *int64:
 			*out.(*int64) = int64(in.(*TypedValue).Value.(typeconverter.Inter).Int())

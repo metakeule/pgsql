@@ -344,7 +344,12 @@ func (ø *InsertQuery) Sql() (s SqlType) {
 		panic(err)
 	}
 	//s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s;\n%s", t.Sql(), fi, va, (&AsStruct{currval, "id"}).Sql()))
-	s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s RETURNING id;", t.Sql(), fi, va))
+	stmt := fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s", t.Sql(), fi, va)
+	if len(t.PrimaryKey) == 1 {
+		stmt += " RETURNING " + t.PrimaryKey[0].Name
+	}
+	stmt += ";"
+	s = Sql(stmt)
 	return
 }
 
