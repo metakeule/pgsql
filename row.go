@@ -40,8 +40,6 @@ type Row struct {
 	setErrors    []error
 	Debug        bool
 	LastSql      string
-	ForceInsert  bool
-	ForceUpdate  bool
 	PreValidate  []PreValidate
 	PostValidate []PostValidate
 	PreGet       []PreGet
@@ -261,12 +259,15 @@ func (ø *Row) Validate() (err error) {
 }
 
 func (ø *Row) Save() (err error) {
+	if len(ø.PrimaryKey) != 1 {
+		panic("save should only be called for single primary keys, try update or insert directly")
+	}
 	err = ø.Validate()
 	if err != nil {
 		return fmt.Errorf("Can't save row of %s:\n%s\n", ø.Table.Sql(), err.Error())
 	}
 	ø.setErrors = []error{}
-	if ø.ForceUpdate || (ø.HasId() && ø.ForceInsert == false) {
+	if ø.HasId() {
 		err = ø.Update()
 	} else {
 		err = ø.Insert()
@@ -681,7 +682,14 @@ func (ø *Row) Load(ids ...interface{}) (err error) {
 	return
 }
 
-func (ø *Row) Update() (err error) {
+// has to be invoked directly
+func (ø *Row) Update(pkVals ...interface{}) (err error) {
+	err = ø.Validate()
+	if err != nil {
+		return fmt.Errorf("Can't update row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+	}
+	ø.setErrors = []error{}
+
 	for _, hook := range ø.PreUpdate {
 		err = hook(ø)
 		if err != nil {
@@ -691,11 +699,34 @@ func (ø *Row) Update() (err error) {
 	vals := ø.typedValues()
 	// fmt.Println(vals)
 	var cond []Sqler
-	ids := ø.Id()
-	for i, pkey := range ø.PrimaryKey {
-		delete(vals, pkey)
-		cond = append(cond, Equals(pkey, ids[i]))
+	if len(ø.PrimaryKey) == 1 {
+		ids := ø.Id()
+		delete(vals, ø.PrimaryKey[0])
+		cond = append(cond, Equals(ø.PrimaryKey[0], ids[0]))
+	} else {
+		if len(pkVals) != len(ø.PrimaryKey) {
+			n := []string{}
+			for _, pk := range ø.PrimaryKey {
+				n = append(n, pk.Name)
+			}
+			panic(fmt.Sprintf("number of vals for multiple primary keys does not match: given: %v, needed: %v (%s)\n", len(pkVals), len(ø.PrimaryKey), strings.Join(n, ", ")))
+		}
+		for i, pk := range ø.PrimaryKey {
+			cond = append(cond, Equals(pk, pkVals[i]))
+		}
 	}
+	/*
+		else {
+			ids := ø.Id()
+			for i, pkey := range ø.PrimaryKey {
+				//delete(vals, pkey)
+				cond = append(cond, Equals(pkey, ids[i]))
+			}
+		}
+	*/
+
+	//w := []*Condition{}
+	//conditions = append(conditions, And(cond...))
 	w := And(cond...)
 
 	u := Update(
@@ -746,7 +777,12 @@ func (ø *Row) typedValues() (vals map[*Field]interface{}) {
 	return
 }
 
-func (ø *Row) Insert() error {
+func (ø *Row) Insert() (err error) {
+	err = ø.Validate()
+	if err != nil {
+		return fmt.Errorf("Can't insert row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+	}
+	ø.setErrors = []error{}
 	for _, hook := range ø.PreInsert {
 		err := hook(ø)
 		if err != nil {
