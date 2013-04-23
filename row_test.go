@@ -26,6 +26,14 @@ func (ø *FakeDB) RowsAffected() (id int64, err error) {
 	return
 }
 
+func (ø *FakeDB) Close() error {
+	return nil
+}
+
+func (ø *FakeDB) Begin() (tx *sql.Tx, ſ error) {
+	return
+}
+
 func (ø *FakeDB) Exec(query string, args ...interface{}) (s sql.Result, err error) {
 	ø.LastQuery = query
 	ø.LastQueryParams = args

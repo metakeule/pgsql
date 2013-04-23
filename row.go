@@ -849,7 +849,17 @@ func (ø *Row) Delete() (err error) {
 			return
 		}
 	}
-	u := Delete(ø.Table, Where(Equals(ø.PrimaryKey, ø.Id())))
+
+	cond := []Sqler{}
+
+	ids := ø.Id()
+	for i, pk := range ø.PrimaryKey {
+		cond = append(cond, Equals(pk, ids[i]))
+	}
+
+	w := And(cond...)
+
+	u := Delete(ø.Table, Where(w))
 	_, err = ø.Exec(u)
 	for _, hook := range ø.PostDelete {
 		err = hook(ø)
