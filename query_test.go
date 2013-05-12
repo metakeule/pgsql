@@ -91,7 +91,7 @@ func TestSelectOrderBy(t *testing.T) {
 }
 
 func TestSelectGroupBy(t *testing.T) {
-	i := Select(TABLE, As(Function("count", LastName), "no", IntType), Age, GroupBy(Age))
+	i := Select(TABLE, As(Call("count", LastName), "no", IntType), Age, GroupBy(Age))
 	res := `select "person"."age", count("person"."lastname") as "no" from "person" group by "person"."age"`
 	if !hasSql(i, res) {
 		err(t, "sql should contain select limit statement", normalize(i.Sql().String()), res)
