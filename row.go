@@ -7,19 +7,6 @@ import (
 	"time"
 )
 
-type rowDB interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
-type DB interface {
-	rowDB
-	Close() (ſ error)
-	Begin() (tx *sql.Tx, ſ error)
-}
-
 type PreValidate func(*Row) error
 type PostValidate func(*Row) error
 type PreGet func(*Row) error
@@ -52,7 +39,7 @@ type Row struct {
 	PostDelete   []PostDelete
 }
 
-func NewRow(db rowDB, table *Table, hooks ...interface{}) (ø *Row) {
+func NewRow(db RowDB, table *Table, hooks ...interface{}) (ø *Row) {
 	ø = &Row{
 		Table:        table,
 		setErrors:    []error{},
@@ -351,12 +338,15 @@ func (ø *Row) clearValues() {
 }
 
 // vals must be in the order of ø.PrimaryKey
-func (ø *Row) SetId(vals ...interface{}) (err error) {
+func (ø *Row) SetId(vals ...string) (err error) {
 	for i, val := range vals {
-		err = Convert(val, ø.values[ø.PrimaryKey[i]])
-		if err != nil {
-			return
-		}
+		ø.values[ø.PrimaryKey[i]] = &TypedValue{ø.PrimaryKey[i].Type, NewPgInterpretedString(val)}
+		/*
+			err = Convert(val, ø.values[ø.PrimaryKey[i]])
+			if err != nil {
+				return
+			}
+		*/
 	}
 	return
 }
@@ -647,14 +637,29 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 	return
 }
 
-func (ø *Row) Load(ids ...interface{}) (err error) {
+func (ø *Row) Reload() (err error) {
+	if !ø.HasId() {
+		return fmt.Errorf("can't reload, have no id")
+	}
+	var ids []string
+
+	for _, pk := range ø.PrimaryKey {
+		var id string
+		ø.Get(pk, &id)
+		ids = append(ids, id)
+	}
+	fmt.Printf("loaded ids to: %#v", ids)
+	return ø.Load(ids...)
+}
+
+func (ø *Row) Load(ids ...string) (err error) {
 	f := ø.Table.Fields
 	err = ø.SetId(ids...)
 	if err != nil {
 		return
 	}
 
-	// ø.Debug = true
+	//ø.Debug = true
 
 	var conds []Sqler
 	is := ø.Id()
@@ -940,6 +945,7 @@ func (ø *Row) setSearchPath() {
 
 func (ø *Row) Exec(query Query, args ...interface{}) (r sql.Result, err error) {
 	ø.setSearchPath()
+	//ø.Debug = true
 	if ø.Debug {
 		fmt.Println(query.String())
 	}
@@ -954,6 +960,7 @@ func (ø *Row) Exec(query Query, args ...interface{}) (r sql.Result, err error) 
 
 func (ø *Row) Prepare(query Query) (r *sql.Stmt, err error) {
 	s := query.Sql()
+	// ø.Debug = true
 	if ø.Debug {
 		fmt.Println(s.String())
 	}
@@ -971,6 +978,7 @@ func (ø *Row) Query(query Query, args ...interface{}) (r *sql.Rows, err error) 
 	s := query.Sql()
 	ø.LastSql = s.String()
 	ø.setSearchPath()
+	//ø.Debug = true
 	if ø.Debug {
 		fmt.Println(s.String())
 	}
@@ -983,6 +991,7 @@ func (ø *Row) Query(query Query, args ...interface{}) (r *sql.Rows, err error) 
 }
 
 func (ø *Row) QueryRow(query Query, args ...interface{}) (r *sql.Row) {
+	//ø.Debug = true
 	if ø.Debug {
 		fmt.Println(query.String())
 	}

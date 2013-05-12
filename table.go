@@ -26,6 +26,48 @@ func (ø *foreignKey) Sql() SqlType {
 	))
 }
 
+/*
+	CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ name ] ON table [ USING method ]
+    ( { column | ( expression ) } [ COLLATE collation ] [ opclass ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )
+    [ WITH ( storage_parameter = value [, ... ] ) ]
+    [ TABLESPACE tablespace ]
+    [ WHERE predicate ]
+*/
+type Index struct {
+	Name         string
+	Unique       bool
+	Concurrently bool
+	Fields       []*Field
+	Table        *Table
+	Method       string
+}
+
+func (ø *Index) Sql() SqlType {
+	return Sql(ø.Name)
+}
+
+func (ø *Index) Create() SqlType {
+	s := `CREATE %sINDEX %s%s ON %s %s(%s)`
+	unique, concurr, using := "", "", ""
+	if ø.Unique {
+		unique = " UNIQUE "
+	}
+	if ø.Concurrently {
+		concurr = " CONCURRENTLY "
+	}
+	if ø.Method != "" {
+		using = " USING " + ø.Method
+	}
+
+	fields := []string{}
+	for _, f := range ø.Fields {
+		fields = append(fields, `"`+f.Name+`"`)
+	}
+
+	return Sql(fmt.Sprintf(s, unique, concurr, `"`+ø.Name+`"`, ø.Table.Sql(), using,
+		strings.Join(fields, ",")))
+}
+
 type unique struct {
 	Fields []*Field
 	Name   string

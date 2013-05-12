@@ -15,6 +15,11 @@ func Sql(s string) SqlType {
 	return SqlType(s)
 }
 
+// converts a string with formatting rules to sql string via fmt.Sprintf
+func Sqlf(s string, v ...interface{}) SqlType {
+	return Sql(fmt.Sprintf(s, v...))
+}
+
 type Sqler interface {
 	Sql() SqlType
 }
@@ -45,6 +50,8 @@ var TypeNames = map[Type]string{
 	IntsType:        "integer[]",
 	StringsType:     "character varying[]",
 	UuidType:        "uuid",
+	LtreeType:       "ltree",
+	TriggerType:     "trigger",
 }
 
 // uuid NOT NULL DEFAULT uuid_generate_v4()
@@ -61,6 +68,8 @@ var TypeCompatibles = map[Type][]Type{
 	XmlType:         []Type{XmlType, TextType},
 	HtmlType:        []Type{HtmlType, TextType},
 	UuidType:        []Type{UuidType, TextType},
+	LtreeType:       []Type{LtreeType, TextType},
+	TriggerType:     []Type{TriggerType, TextType},
 	TimeStampTZType: []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 	TimeStampType:   []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
 }
@@ -97,6 +106,8 @@ const (
 	StringsType
 	HtmlType
 	UuidType
+	LtreeType
+	TriggerType
 )
 
 var TypeConverter = NewTypeConverter()
