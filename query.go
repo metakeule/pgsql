@@ -93,6 +93,21 @@ func (ø *Comparer) Sql() SqlType {
 	return Sql(fmt.Sprintf("%s %s %s", ø.A.Sql(), ø.Sign, ø.B.Sql()))
 }
 
+type nuller struct {
+	obj  Sqler
+	null bool
+}
+
+func (ø *nuller) Sql() SqlType {
+	if ø.null {
+		return Sql(fmt.Sprintf("%s IS NULL", ø.obj.Sql()))
+	}
+	return Sql(fmt.Sprintf("%s IS NOT NULL", ø.obj.Sql()))
+}
+
+func IsNull(s Sqler) *nuller    { return &nuller{s, true} }
+func IsNotNull(s Sqler) *nuller { return &nuller{s, false} }
+
 func Equals(a interface{}, b interface{}) *Comparer {
 	return &Comparer{ToSql(a), ToSql(b), "="}
 }
@@ -496,7 +511,7 @@ func (ø Direction) Sql() (s SqlType) {
 func OrderBy(os ...interface{}) (o []*OrderByStruct) {
 	o = []*OrderByStruct{}
 	for i := 0; i < len(os); i = i + 2 {
-		f := os[i].(*Field)
+		f := os[i].(Sqler)
 		d := os[i+1].(Direction)
 		o = append(o, &OrderByStruct{f, d})
 	}
@@ -504,12 +519,12 @@ func OrderBy(os ...interface{}) (o []*OrderByStruct) {
 }
 
 type OrderByStruct struct {
-	*Field
+	Sqler
 	Direction Direction
 }
 
 func (ø *OrderByStruct) Sql() SqlType {
-	return Sql(ø.Field.Sql().String() + " " + ø.Direction.Sql().String())
+	return Sql(ø.Sqler.Sql().String() + " " + ø.Direction.Sql().String())
 }
 
 func GroupBy(f ...*Field) GroupByArray {
@@ -657,16 +672,50 @@ func (ø *SelectQuery) order_by() (s SqlType) {
 	return Sql("\nORDER BY " + strings.Join(str, ", "))
 }
 
-type FunctionStruct struct {
+type caseStruct struct {
+	whens map[Sqler]Sqler
+	Else  Sqler
+}
+
+func Case(sqls ...Sqler) (ø *caseStruct) {
+	ø = &caseStruct{
+		whens: map[Sqler]Sqler{},
+	}
+	for i := 0; i < len(sqls); i = i + 2 {
+		ø.whens[sqls[i]] = sqls[i+1]
+	}
+	return
+}
+
+func (ø *caseStruct) Sql() SqlType {
+	s := `
+CASE
+  %s
+  %s
+END
+`
+	whens := []string{}
+	for k, v := range ø.whens {
+		whens = append(whens, fmt.Sprintf(`WHEN %s THEN %s`, k.Sql().String(), v.Sql().String()))
+	}
+	el := ""
+	if ø.Else != nil {
+		el = " ELSE " + ø.Else.Sql().String()
+	}
+
+	return Sql(fmt.Sprintf(s, strings.Join(whens, "\n  "), el))
+}
+
+type callStruct struct {
 	Name   string
 	Params []Sqler
 }
 
-func Function(name string, params ...Sqler) (out *FunctionStruct) {
-	return &FunctionStruct{name, params}
+func Call(name string, params ...Sqler) (out *callStruct) {
+	return &callStruct{name, params}
 }
 
-func (ø *FunctionStruct) Sql() SqlType {
+func (ø *callStruct) Sql() SqlType {
 	params := []string{}
 	for _, sq := range ø.Params {
 		params = append(params, sq.Sql().String())
