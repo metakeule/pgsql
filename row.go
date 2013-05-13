@@ -415,6 +415,32 @@ func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 	return
 }
 
+func (ø *Row) FindWithArgs(args []interface{}, options ...interface{}) (rows *Rows, err error) {
+	sel := ø.selectquery(options...)
+	r, err := ø.Query(sel, args...)
+
+	if err != nil {
+		return
+	}
+
+	rows = &Rows{
+		Rows:   r,
+		row:    ø,
+		Fields: []interface{}{},
+	}
+
+	for _, f := range sel.Fields {
+		rows.Fields = append(rows.Fields, f)
+	}
+
+	for _, aliasF := range sel.FieldsWithAlias {
+		//rows.Fields = append(rows.Fields, NewField(aliasF.As, aliasF.Type))
+		rows.Fields = append(rows.Fields, aliasF)
+	}
+
+	return
+}
+
 func (ø *Row) Find(options ...interface{}) (rows *Rows, err error) {
 	sel := ø.selectquery(options...)
 	r, err := ø.Query(sel)
