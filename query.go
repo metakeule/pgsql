@@ -610,6 +610,8 @@ func Select(options ...interface{}) Query {
 			s.OrderBy = append(s.OrderBy, &v)
 		case GroupByArray:
 			s.GroupBy = v
+		case Distinct:
+			s.Distinct = v
 		default:
 			if sqler, ok := v.(Sqler); ok {
 				s.Table = sqler
