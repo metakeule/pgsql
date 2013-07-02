@@ -3,6 +3,7 @@ package pgsql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/metakeule/meta"
 	"strings"
 	"time"
 )
@@ -137,6 +138,43 @@ func (ø *Row) Get(o ...interface{}) {
 			panic(fmt.Sprintf("unsupported type %#v\n", o[i]))
 		}
 	}
+}
+
+//ro.Get(artist.Id, &a.Id, artist.FirstName, &a.FirstName, artist.LastName, &a.LastName, artist.GalleryArtist, &a.GalleryArtist, artist.Vita, &a.Vita, artist.Area, &ar)
+func (ø *Row) GetStruct(tagVal string, s interface{}) error {
+	fv := meta.Struct.FinalValue(s)
+
+	for f, v := range ø.values {
+		if f.queryField == "" {
+			panic("queryField not set for " + f.Name)
+		}
+		// a field with this name does exist
+		if vl := fv.FieldByName(f.queryField); vl.IsValid() {
+			tag := meta.Struct.Tag(s, f.queryField)
+			// tag does match the given
+			if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+				err := Convert(v, vl.Addr().Interface())
+				if err != nil {
+					return fmt.Errorf("error in field %s: %s", f.queryField, err.Error())
+				}
+			}
+		}
+	}
+
+	for f, v := range ø.aliasValues {
+		// a field with this name does exist
+		if vl := fv.FieldByName(f.As); vl.IsValid() {
+			tag := meta.Struct.Tag(s, f.As)
+			// tag does match the given
+			if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+				err := Convert(v, vl.Addr().Interface())
+				if err != nil {
+					return fmt.Errorf("error in field %s: %s", f.As, err.Error())
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (ø *Row) GetString(field interface{}) (s string) {
@@ -383,8 +421,8 @@ func (ø *Rows) ScanRow() (row *Row, ſ error) {
 // call fn on each row
 func (ø *Row) Each(fn func(*Row) error, options ...interface{}) (err error) {
 	var rows *Rows
-	defer rows.Close()
 	rows, err = ø.Find(options...)
+	defer rows.Close()
 	if err != nil {
 		return
 	}
@@ -466,6 +504,17 @@ func (ø *Row) Find(options ...interface{}) (rows *Rows, err error) {
 
 	return
 }
+
+// runs any and returns the result into the struct 
+func (ø *Row) Result(tagVal string, structPtr interface{}, findOptions ...interface{}) error {
+	row, err := ø.Any(findOptions...)
+	if err != nil {
+		return err
+	}
+	return row.GetStruct(tagVal, structPtr)
+}
+
+//func (ø *Row) QueryByStruct()
 
 func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 	//ø.clearValues()
@@ -711,6 +760,15 @@ func (ø *Row) Load(ids ...string) (err error) {
 	err = ø.Scan(row, fs...)
 	row.Close()
 	return
+}
+
+// runs load and puts the result into the struct
+func (ø *Row) LoadStruct(tagVal string, structPtr interface{}, ids ...string) error {
+	err := ø.Load(ids...)
+	if err != nil {
+		return err
+	}
+	return ø.GetStruct(tagVal, structPtr)
 }
 
 // has to be invoked directly

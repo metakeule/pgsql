@@ -50,6 +50,7 @@ type Field struct {
 	ForeignKey  *Field
 	Selection   SelectionArray
 	Validations []FieldValidator
+	queryField  string // name of a field in a query struct that should match this field
 }
 
 func NewField(name string, options ...interface{}) *Field {
@@ -77,6 +78,19 @@ func (ø *Field) InSelection(value interface{}) bool {
 		}
 	}
 	return false
+}
+
+// sets the queryField, allows chaining
+func (ø *Field) SetQueryField(f string) *Field {
+	if ø.queryField != "" {
+		panic("queryField already set to " + ø.queryField + ", can't change")
+	}
+	ø.queryField = f
+	return ø
+}
+
+func (ø *Field) QueryField() string {
+	return ø.queryField
 }
 
 func (ø *Field) AddValidator(v ...FieldValidator) {
