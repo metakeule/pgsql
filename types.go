@@ -33,7 +33,7 @@ func (ø SqlType) String() string {
 }
 
 func (ø SqlType) TypedValue() *TypedValue {
-	return &TypedValue{TextType, ø}
+	return &TypedValue{TextType, ø, true}
 }
 
 var TypeNames = map[Type]string{
@@ -124,6 +124,28 @@ func ToSql(i interface{}) Sqler {
 		panic("can't convert to sql: " + err.Error())
 	}
 	return out
+}
+
+var TypeDefaults = map[Type]interface{}{
+	TextType:        "",
+	IntType:         0,
+	FloatType:       float32(0),
+	BoolType:        false,
+	TimeStampTZType: time.Now(),
+	TimeStampType:   time.Now(),
+	DateType:        time.Now(),
+	TimeType:        time.Now(),
+	XmlType:         "",
+	HtmlType:        "",
+	IntsType:        []int{},
+	StringsType:     []string{},
+	UuidType:        "",
+	// LtreeType:       "ltree",
+	// TriggerType:     "trigger",
+}
+
+func (ø Type) Default() interface{} {
+	return TypeDefaults[ø]
 }
 
 func (ø Type) String() string { return TypeNames[ø] }
@@ -259,49 +281,52 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø = typeconverter.New()
 
 	inSwitch := func(from interface{}, to interface{}) (err error) {
+		// fmt.Printf("-- convert %v (%T)--\n", from, from)
 		switch t := from.(type) {
+		//case Placeholder:
+		//	err = ø.Output.Dispatch(to, &TypedValue{TextType, t, true})
 		case int:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(t), false})
 		case int32:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(int(t))})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(int(t)), false})
 		case int64:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int64(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int64(t), false})
 		case float64:
-			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float(t), false})
 		case float32:
-			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(t), false})
 		case string:
 			// err = ø.Output.Dispatch(to, typedValForString(t))
 			//fmt.Printf("as interpreted string: %#v\n", t)
-			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(t), false})
 			//err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.String(t)})
 		case bool:
-			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(t), false})
 		case time.Time:
-			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(t), false})
 		case []int:
-			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t), false})
 		case []string:
-			err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(t)})
+			err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(t), false})
 		case *int:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t), false})
 		case *int32:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(int(*t))})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(int(*t)), false})
 		case *int64:
-			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int64(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int64(*t), false})
 		case *float64:
-			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float(*t), false})
 		case *float32:
-			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{FloatType, typeconverter.Float32(*t), false})
 		case *string:
 			//fmt.Printf("as interpreted *string: %#v\n", *t)
-			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, NewPgInterpretedString(*t), false})
 			// err = ø.Output.Dispatch(to, &TypedValue{TextType, typeconverter.String(*t)})
 			// err = ø.Output.Dispatch(to, typedValForString(*t))
 		case *bool:
-			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{BoolType, typeconverter.Bool(*t), false})
 		case *time.Time:
-			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(*t)})
+			err = ø.Output.Dispatch(to, &TypedValue{TimeStampTZType, typeconverter.Time(*t), false})
 		case *TypedValue:
 			err = ø.Output.Dispatch(to, t)
 		case TypedValue:
@@ -311,7 +336,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case Type:
 			err = ø.Output.Dispatch(to, t)
 		default:
-			err = ø.Output.Dispatch(to, &TypedValue{TextType, from.(typeconverter.Stringer)})
+			err = ø.Output.Dispatch(to, &TypedValue{TextType, from.(typeconverter.Stringer), false})
 		}
 		return
 	}
@@ -409,8 +434,9 @@ type Typer interface {
 }
 
 type TypedValue struct {
-	PgType Type
-	Value  typeconverter.Stringer
+	PgType     Type
+	Value      typeconverter.Stringer
+	dontChange bool
 }
 
 type Valuer interface {
@@ -432,7 +458,11 @@ func (ø *TypedValue) Sql() SqlType {
 	if ø.IsNil() {
 		return Sql("Null")
 	}
-	return Sql(fmt.Sprintf("'%s'::%s", ø.Value.String(), ø.PgType.String()))
+	if ø.dontChange {
+		return Sql(ø.Value.String())
+	}
+	val := escape(ø.Value.String())
+	return Sql(fmt.Sprintf("%s::%s", val, ø.PgType.String()))
 }
 
 func (ø *TypedValue) String() string { return ø.Value.String() }

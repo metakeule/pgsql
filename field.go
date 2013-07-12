@@ -119,7 +119,19 @@ func (ø *Field) Value(val interface{}) (tv *TypedValue, err error) {
 	return
 }
 
+func (ø *Field) MustValue(val interface{}) (tv *TypedValue) {
+	var e error
+	tv, e = ø.Value(val)
+	if e != nil {
+		panic(e.Error())
+	}
+	return
+}
+
 func (ø *Field) Validate(value interface{}) (err error) {
+	if _, ok := value.(*pgInterpretedString); ok {
+		return
+	}
 	for _, v := range ø.Validations {
 		err = v.Validate(value)
 		if err != nil {

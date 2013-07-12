@@ -2,8 +2,9 @@ package pgsql
 
 import (
 	"fmt"
-	"github.com/metakeule/fastreplace"
-
+	"reflect"
+	// "github.com/metakeule/fastreplace"
+	"github.com/metakeule/template"
 	"strings"
 )
 
@@ -27,11 +28,169 @@ func (ø Offset) Sql() (s SqlType) {
 	return
 }
 
-type CompiledQuery struct {
-	freplace *fastreplace.FReplace
-	Query    Query
+func escape(in string) (out string) {
+	out = strings.Replace(in, "$userinput$", "", -1)
+	out = "$userinput$" + out + "$userinput$"
+	return
 }
 
+func (ø SqlType) Placeholder() Placeholder {
+	t := template.NewPlaceholder("sql." + ø.String())
+	t.Transformer = handleSql
+	return typedPlaceholder{t}
+}
+
+func handleSql(in interface{}) (out string) {
+	switch v := in.(type) {
+	case string:
+		out = v
+	case Sqler:
+		out = v.Sql().String()
+	case Stringer:
+		out = v.String()
+	default:
+		out = fmt.Sprintf("%v", v)
+		//panic("unsupported type: " + fmt.Sprintf("%v (%T)", v, v))
+	}
+	return
+}
+
+var Transformer = map[string]func(interface{}) string{
+	"value":    escapeValue,
+	"sql":      handleSql,
+	"search%":  escapeSearchEnd,
+	"%search":  escapeSearchStart,
+	"%search%": escapeSearchBoth,
+}
+
+func escapeValue(in interface{}) (out string) {
+	switch v := in.(type) {
+	case string:
+		out = escape(v)
+	case TypedValue:
+		out = escape(v.Value.String())
+	case Sqler:
+		out = v.Sql().String()
+	case Stringer:
+		out = escape(v.String())
+	default:
+		out = escape(fmt.Sprintf("%v", v))
+	}
+	return
+}
+
+type Placeholder interface {
+	template.Replacer
+	Sqler
+	Set(val interface{}) template.Placeholder
+	Setf(format string, val interface{}) template.Placeholder
+	String() string
+}
+
+type typedPlaceholder struct{ template.Placeholder }
+
+func (ø typedPlaceholder) Sql() SqlType {
+	return Sql(ø.Placeholder.String())
+}
+
+type SearchStart string
+
+func (ø SearchStart) Placeholder() Placeholder {
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
+	t.Transformer = escapeSearchStart
+	return typedPlaceholder{t}
+}
+
+type SearchEnd string
+
+func (ø SearchEnd) Placeholder() Placeholder {
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
+	t.Transformer = escapeSearchEnd
+	return typedPlaceholder{t}
+}
+
+type SearchBoth string
+
+func (ø SearchBoth) Placeholder() Placeholder {
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
+	t.Transformer = escapeSearchBoth
+	return typedPlaceholder{t}
+}
+
+func (ø *Field) Placeholder() Placeholder {
+	t := template.NewPlaceholder(ø.Table.Name + "." + ø.Name)
+	fn := func(in interface{}) (out string) {
+		tv := ø.MustValue(in)
+		return tv.Sql().String()
+	}
+	t.Transformer = fn
+	return typedPlaceholder{t}
+}
+
+func (ø *TypedValue) Placeholder() Placeholder {
+	t := template.NewPlaceholder(ø.PgType.String())
+	t.Transformer = escapeValue
+	return typedPlaceholder{t}
+}
+
+func escapeSearchStart(in interface{}) (out string) {
+	var inString string
+	switch v := in.(type) {
+	case string:
+		inString = v
+	case TypedValue:
+		inString = v.Value.String()
+	case Sqler:
+		inString = v.Sql().String()
+	case Stringer:
+		inString = v.String()
+	default:
+		inString = fmt.Sprintf("%v", v)
+	}
+	return escape("%" + inString)
+}
+
+func escapeSearchEnd(in interface{}) (out string) {
+	var inString string
+	switch v := in.(type) {
+	case string:
+		inString = v
+	case TypedValue:
+		inString = v.Value.String()
+	case Sqler:
+		inString = v.Sql().String()
+	case Stringer:
+		inString = v.String()
+	default:
+		inString = fmt.Sprintf("%v", v)
+	}
+	return escape(inString + "%")
+}
+
+func escapeSearchBoth(in interface{}) (out string) {
+	var inString string
+	switch v := in.(type) {
+	case string:
+		inString = v
+	case TypedValue:
+		inString = v.Value.String()
+	case Sqler:
+		inString = v.Sql().String()
+	case Stringer:
+		inString = v.String()
+	default:
+		inString = fmt.Sprintf("%v", v)
+	}
+	return escape("%" + inString + "%")
+}
+
+type CompiledQuery struct {
+	//freplace *fastreplace.FReplace
+	*template.Template
+	Query Query
+}
+
+/*
 type CompiledQueryInstance struct {
 	inst fastreplace.Replacer
 }
@@ -52,14 +211,29 @@ func (ø *CompiledQueryInstance) Sql() SqlType {
 func (ø *CompiledQuery) Instance() (c *CompiledQueryInstance) {
 	return &CompiledQueryInstance{ø.freplace.Instance()}
 }
+*/
 
 func Compile(q Query) (c *CompiledQuery, ſ error) {
-	fr, ſ := fastreplace.NewString("@@", q.String())
+	t, ſ := template.New(q.String())
+	t.Strict = true
 	c = &CompiledQuery{
 		Query:    q,
-		freplace: fr,
+		Template: t,
+	}
+	if ſ != nil {
+		t = nil
+		return
 	}
 	return
+}
+
+// panics on error
+func MustCompile(q Query) *CompiledQuery {
+	c, e := Compile(q)
+	if e != nil {
+		panic(e.Error())
+	}
+	return c
 }
 
 type Query interface {
@@ -75,13 +249,16 @@ const (
 )
 
 type JoinType int
-type Placeholder int
+
+//type Placeholder int
 
 // you can use Placeholder(1), as value to update insert etc. in order
 // to get a prepare statement, that you may execute later on
+/*
 func (ø Placeholder) Sql() SqlType {
 	return Sql(fmt.Sprintf("$%v", ø))
 }
+*/
 
 type Comparer struct {
 	A    Sqler
@@ -107,6 +284,10 @@ func (ø *nuller) Sql() SqlType {
 
 func IsNull(s Sqler) *nuller    { return &nuller{s, true} }
 func IsNotNull(s Sqler) *nuller { return &nuller{s, false} }
+
+func Like(a interface{}, b interface{}) *Comparer {
+	return &Comparer{ToSql(a), ToSql(b), "LIKE"}
+}
 
 func Equals(a interface{}, b interface{}) *Comparer {
 	return &Comparer{ToSql(a), ToSql(b), "="}
@@ -333,12 +514,16 @@ func (ø *InsertQuery) fieldsAndValuesInsert() (fields string, values string, er
 				}
 
 			}
-			tv := TypedValue{PgType: k.Type}
-			e := Convert(v, &tv)
-			if e != nil {
-				err = e
-				return
+			tv, ok := v.(*TypedValue)
+			if !ok {
+				tv = &TypedValue{PgType: k.Type}
+				e := Convert(v, tv)
+				if e != nil {
+					err = e
+					return
+				}
 			}
+
 			sql := tv.Sql()
 			ro = append(ro, string(sql))
 		}
@@ -411,16 +596,20 @@ func Update(table *Table, options ...interface{}) Query {
 func (ø *UpdateQuery) setString() (set string, err error) {
 	sets := []string{}
 	for k, v := range ø.Set {
+		// fmt.Printf("in update %s: %v (%T)\n", k.Name, v, v)
 		var valstr SqlType
 		typedv, ok := v.(*TypedValue)
 		if k.Is(NullAllowed) && (v == nil || ok && typedv.Value == nil) {
 			valstr = Sql("Null")
 		} else {
-			tv := TypedValue{PgType: k.Type}
-			e := Convert(v, &tv)
-			if e != nil {
-				err = e
-				return
+			tv := typedv
+			if !ok {
+				tv = &TypedValue{PgType: k.Type}
+				e := Convert(v, tv)
+				if e != nil {
+					err = e
+					return
+				}
 			}
 
 			valstr = tv.Sql()

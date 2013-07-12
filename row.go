@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/metakeule/meta"
+	"github.com/metakeule/typeconverter"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -216,7 +218,20 @@ func (ø *Row) set(o ...interface{}) (err error) {
 	for i := 0; i < len(o); i = i + 2 {
 		field := o[i].(*Field)
 		var tv *TypedValue
-		tv, err = field.Value(o[i+1])
+		vl := o[i+1]
+		placeh, ok := vl.(Placeholder)
+		if ok {
+			//fmt.Println("is placeholder: " + placeh.String())
+			//tv, err = field.Value(placeh.String())
+			//fmt.Printf("pgtype %s value %#v\n", tv.PgType.String(), tv.Value)
+			//tv.PgType = VarChar(255)
+			tv = &TypedValue{TextType, &pgInterpretedString{StringType: typeconverter.StringType(placeh.String())}, true}
+			//fmt.Printf("pgtype %s value %#v\n", tv.PgType.String(), tv.Value)
+			//tv.PgType = VarChar(125)
+			//tv.dontChange = true
+		} else {
+			tv, err = field.Value(vl)
+		}
 		/*
 			if o[i+1] == nil {
 				if field.Is(NullAllowed) {
@@ -378,7 +393,7 @@ func (ø *Row) clearValues() {
 // vals must be in the order of ø.PrimaryKey
 func (ø *Row) SetId(vals ...string) (err error) {
 	for i, val := range vals {
-		ø.values[ø.PrimaryKey[i]] = &TypedValue{ø.PrimaryKey[i].Type, NewPgInterpretedString(val)}
+		ø.values[ø.PrimaryKey[i]] = &TypedValue{ø.PrimaryKey[i].Type, NewPgInterpretedString(val), false}
 		/*
 			err = Convert(val, ø.values[ø.PrimaryKey[i]])
 			if err != nil {
@@ -418,6 +433,15 @@ func (ø *Rows) ScanRow() (row *Row, ſ error) {
 	return
 }
 
+// scan the result into a struct
+func (ø *Rows) ScanStruct(tagVal string, s interface{}) (ſ error) {
+	ſ = ø.row.Scan(ø.Rows, ø.Fields...)
+	if ſ != nil {
+		return
+	}
+	return ø.row.GetStruct(tagVal, s)
+}
+
 // call fn on each row
 func (ø *Row) Each(fn func(*Row) error, options ...interface{}) (err error) {
 	var rows *Rows
@@ -454,7 +478,7 @@ func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 }
 
 func (ø *Row) FindWithArgs(args []interface{}, options ...interface{}) (rows *Rows, err error) {
-	sel := ø.selectquery(options...)
+	sel := ø.SelectQuery(options...)
 	r, err := ø.Query(sel, args...)
 
 	if err != nil {
@@ -480,7 +504,7 @@ func (ø *Row) FindWithArgs(args []interface{}, options ...interface{}) (rows *R
 }
 
 func (ø *Row) Find(options ...interface{}) (rows *Rows, err error) {
-	sel := ø.selectquery(options...)
+	sel := ø.SelectQuery(options...)
 	r, err := ø.Query(sel)
 
 	if err != nil {
@@ -505,7 +529,7 @@ func (ø *Row) Find(options ...interface{}) (rows *Rows, err error) {
 	return
 }
 
-// runs any and returns the result into the struct 
+// runs any and returns the result into the struct
 func (ø *Row) Result(tagVal string, structPtr interface{}, findOptions ...interface{}) error {
 	row, err := ø.Any(findOptions...)
 	if err != nil {
@@ -771,20 +795,7 @@ func (ø *Row) LoadStruct(tagVal string, structPtr interface{}, ids ...string) e
 	return ø.GetStruct(tagVal, structPtr)
 }
 
-// has to be invoked directly
-func (ø *Row) Update(pkVals ...interface{}) (err error) {
-	err = ø.Validate()
-	if err != nil {
-		return fmt.Errorf("Can't update row of %s:\n%s\n", ø.Table.Sql(), err.Error())
-	}
-	ø.setErrors = []error{}
-
-	for _, hook := range ø.PreUpdate {
-		err = hook(ø)
-		if err != nil {
-			return
-		}
-	}
+func (ø *Row) UpdateQuery(pkVals ...interface{}) Query {
 	vals := ø.typedValues()
 	// fmt.Println(vals)
 	var cond []Sqler
@@ -823,6 +834,24 @@ func (ø *Row) Update(pkVals ...interface{}) (err error) {
 		vals,
 		//Where(Equals(ø.PrimaryKey, ø.Id())))
 		Where(w))
+	return u
+}
+
+// has to be invoked directly
+func (ø *Row) Update(pkVals ...interface{}) (err error) {
+	err = ø.Validate()
+	if err != nil {
+		return fmt.Errorf("Can't update row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+	}
+	ø.setErrors = []error{}
+
+	for _, hook := range ø.PreUpdate {
+		err = hook(ø)
+		if err != nil {
+			return
+		}
+	}
+	u := ø.UpdateQuery(pkVals...)
 	// fmt.Println(u.Sql())
 	_, err = ø.Exec(u)
 	for _, hook := range ø.PostUpdate {
@@ -866,6 +895,10 @@ func (ø *Row) typedValues() (vals map[*Field]interface{}) {
 	return
 }
 
+func (ø *Row) InsertQuery() Query {
+	return InsertMap(ø.Table, ø.typedValues())
+}
+
 func (ø *Row) Insert() (err error) {
 	err = ø.Validate()
 	if err != nil {
@@ -878,7 +911,7 @@ func (ø *Row) Insert() (err error) {
 			return err
 		}
 	}
-	u := InsertMap(ø.Table, ø.typedValues())
+	u := ø.InsertQuery()
 	//_, err = ø.Exec(u)
 
 	/*
@@ -912,7 +945,7 @@ func (ø *Row) Insert() (err error) {
 		}
 		//r.Next()
 		//r.Scan(&i)
-		tv := &TypedValue{ø.PrimaryKey[0].Type, NewPgInterpretedString(i)}
+		tv := &TypedValue{ø.PrimaryKey[0].Type, NewPgInterpretedString(i), false}
 		// Convert(i, tv)
 		//fmt.Printf("converted %#v\n", tv)
 		ø.values[ø.PrimaryKey[0]] = tv
@@ -931,14 +964,7 @@ func (ø *Row) Insert() (err error) {
 	return nil
 }
 
-func (ø *Row) Delete() (err error) {
-	for _, hook := range ø.PreDelete {
-		err = hook(ø)
-		if err != nil {
-			return
-		}
-	}
-
+func (ø *Row) deleteQuery() Query {
 	cond := []Sqler{}
 
 	ids := ø.Id()
@@ -949,6 +975,17 @@ func (ø *Row) Delete() (err error) {
 	w := And(cond...)
 
 	u := Delete(ø.Table, Where(w))
+	return u
+}
+
+func (ø *Row) Delete() (err error) {
+	for _, hook := range ø.PreDelete {
+		err = hook(ø)
+		if err != nil {
+			return
+		}
+	}
+	u := ø.deleteQuery()
 	_, err = ø.Exec(u)
 	for _, hook := range ø.PostDelete {
 		err = hook(ø)
@@ -959,7 +996,7 @@ func (ø *Row) Delete() (err error) {
 	return
 }
 
-func (ø *Row) selectquery(objects ...interface{}) (s *SelectQuery) {
+func (ø *Row) SelectQuery(objects ...interface{}) (s *SelectQuery) {
 	snew := make([]interface{}, len(objects)+1)
 	snew[0] = ø.Table
 	for i, o := range objects {
@@ -973,7 +1010,7 @@ func (ø *Row) selectquery(objects ...interface{}) (s *SelectQuery) {
 }
 
 func (ø *Row) Select(objects ...interface{}) (r *sql.Rows, err error) {
-	s := ø.selectquery(objects...)
+	s := ø.SelectQuery(objects...)
 	r, err = ø.Query(s)
 	return
 }
@@ -1096,4 +1133,75 @@ func (ø *Row) SetDB(db DB) {
 
 func (ø *Row) SetTransaction(tx *sql.Tx) {
 	ø.Tx = tx
+}
+
+// TODO make a compilable version that saves the infos about
+// fieldnumbers etc and allows faster queriing
+func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interface{}) error {
+	if !meta.Slice.Check(result) {
+		return fmt.Errorf("result is no slice")
+	}
+	slic := reflect.ValueOf(result)
+	l := slic.Len()
+	if l == 0 {
+		return fmt.Errorf("result slice has length 0")
+	}
+	tags := meta.Struct.Tags(slic.Index(0).Interface())
+	options := []interface{}{Limit(l)}
+	order := []string{}
+
+	for k, v := range tags {
+		if t := v.Get("db.select"); t != "" && strings.Contains(t, tagVal) {
+			options = append(options, ø.Table.QueryField(k))
+			order = append(order, k)
+		}
+	}
+
+	options = append(options, opts...)
+	rows, err := ø.Find(options...)
+	if err != nil {
+		return err
+	}
+	i := 0
+	errs := []string{}
+	for rows.Next() {
+		ro, e := rows.ScanRow()
+		if e != nil {
+			errs = append(errs, e.Error())
+			continue
+		}
+		e = ro.GetStruct(tagVal, slic.Index(i).Addr().Interface())
+		if e != nil {
+			errs = append(errs, e.Error())
+		}
+		i++
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "\n"))
+	}
+	return nil
+}
+
+func (ø *Row) SelectByStruct(structPtr interface{}, tagVal string, opts ...interface{}) error {
+	tags := meta.Struct.Tags(structPtr)
+	options := []interface{}{}
+	order := []string{}
+
+	for k, v := range tags {
+		if t := v.Get("db.select"); t != "" && strings.Contains(t, tagVal) {
+			options = append(options, ø.Table.QueryField(k))
+			order = append(order, k)
+		}
+	}
+
+	options = append(options, opts...)
+	row, err := ø.Any(options...)
+	if err != nil {
+		return err
+	}
+	err = row.GetStruct(tagVal, structPtr)
+	if err != nil {
+		return err
+	}
+	return nil
 }

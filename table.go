@@ -133,6 +133,7 @@ func (ø *Table) IsPrimaryKey(f *Field) (is bool) {
 	return false
 }
 
+// TODO: handle somehow validations for placeholders
 func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) {
 	errs = map[Sqler]error{}
 	//pkey := ø.PrimaryKey
@@ -263,6 +264,15 @@ func (ø *Table) AddField(fields ...*Field) {
 func (ø *Table) Field(name string) (f *Field) {
 	for _, ff := range ø.Fields {
 		if ff.Name == name {
+			return ff
+		}
+	}
+	return
+}
+
+func (ø *Table) QueryField(name string) (f *Field) {
+	for _, ff := range ø.Fields {
+		if ff.QueryField() == name {
 			return ff
 		}
 	}
