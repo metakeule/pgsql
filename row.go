@@ -142,6 +142,18 @@ func (ø *Row) Get(o ...interface{}) {
 	}
 }
 
+func setFieldInStruct(vl reflect.Value, fieldName string, tagVal string, v *TypedValue, s interface{}) error {
+	tag := meta.Struct.Tag(s, fieldName)
+	// tag does match the given
+	if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+		err := Convert(v, vl.Addr().Interface())
+		if err != nil {
+			return fmt.Errorf("error in field %s: %s", fieldName, err.Error())
+		}
+	}
+	return nil
+}
+
 //ro.Get(artist.Id, &a.Id, artist.FirstName, &a.FirstName, artist.LastName, &a.LastName, artist.GalleryArtist, &a.GalleryArtist, artist.Vita, &a.Vita, artist.Area, &ar)
 func (ø *Row) GetStruct(tagVal string, s interface{}) error {
 	fv := meta.Struct.FinalValue(s)
@@ -152,29 +164,56 @@ func (ø *Row) GetStruct(tagVal string, s interface{}) error {
 		}
 		// a field with this name does exist
 		if vl := fv.FieldByName(f.queryField); vl.IsValid() {
-			tag := meta.Struct.Tag(s, f.queryField)
-			// tag does match the given
-			if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
-				err := Convert(v, vl.Addr().Interface())
-				if err != nil {
-					return fmt.Errorf("error in field %s: %s", f.queryField, err.Error())
+			setFieldInStruct(vl, f.queryField, tagVal, v, s)
+
+			/*
+				tag := meta.Struct.Tag(s, f.queryField)
+				// tag does match the given
+				if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+					err := Convert(v, vl.Addr().Interface())
+					if err != nil {
+						return fmt.Errorf("error in field %s: %s", f.queryField, err.Error())
+					}
 				}
-			}
+			*/
 		}
 	}
 
 	for f, v := range ø.aliasValues {
-		// a field with this name does exist
+		if vl := fv.FieldByName(f.queryField); vl.IsValid() {
+			setFieldInStruct(vl, f.queryField, tagVal, v, s)
+			continue
+		}
 		if vl := fv.FieldByName(f.As); vl.IsValid() {
-			tag := meta.Struct.Tag(s, f.As)
-			// tag does match the given
-			if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
-				err := Convert(v, vl.Addr().Interface())
-				if err != nil {
-					return fmt.Errorf("error in field %s: %s", f.As, err.Error())
+			setFieldInStruct(vl, f.As, tagVal, v, s)
+			continue
+		}
+		/*
+			if vl := fv.FieldByName(f.As); vl.IsValid() {
+				setFieldInStruct(vl, f.As, tagVal, v, s)
+					tag := meta.Struct.Tag(s, f.As)
+					// tag does match the given
+					if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+						err := Convert(v, vl.Addr().Interface())
+						if err != nil {
+							return fmt.Errorf("error in field %s: %s", f.As, err.Error())
+						}
+					}
+			}
+
+		*/
+		/*
+			else if {
+				tag := meta.Struct.Tag(s, f.As)
+				// tag does match the given
+				if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
+					err := Convert(v, vl.Addr().Interface())
+					if err != nil {
+						return fmt.Errorf("error in field %s: %s", f.As, err.Error())
+					}
 				}
 			}
-		}
+		*/
 	}
 	return nil
 }
@@ -352,6 +391,16 @@ func (ø *Row) Properties() (m map[string]interface{}) {
 	return
 }
 
+func (ø *Row) SetDebug() *Row {
+	ø.Debug = true
+	return ø
+}
+
+func (ø *Row) UnsetDebug() *Row {
+	ø.Debug = false
+	return ø
+}
+
 func (ø *Row) AsStrings() (m map[string]string) {
 	m = map[string]string{}
 	// fmt.Printf("values: %#v\n", ø.values)
@@ -467,7 +516,9 @@ func (ø *Row) Each(fn func(*Row) error, options ...interface{}) (err error) {
 // return the first result
 func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 	var rows *Rows
-	rows, err = ø.Find(options...)
+	opts := []interface{}{Limit(1)}
+	opts = append(opts, options...)
+	rows, err = ø.Find(opts...)
 	defer rows.Close()
 	if err != nil {
 		return
@@ -1135,16 +1186,37 @@ func (ø *Row) SetTransaction(tx *sql.Tx) {
 	ø.Tx = tx
 }
 
+func (ø *Row) queryField(name string, opts ...interface{}) interface{} {
+	f := ø.Table.QueryField(name)
+	if f != nil {
+		return f
+
+	}
+	for _, o := range opts {
+		switch v := o.(type) {
+		case *Field:
+			if v.QueryField() == name {
+				return v
+			}
+		case *AsStruct:
+			if v.QueryField() == name {
+				return v
+			}
+		}
+	}
+	return nil
+}
+
 // TODO make a compilable version that saves the infos about
 // fieldnumbers etc and allows faster queriing
-func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interface{}) error {
+func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interface{}) (int, error) {
 	if !meta.Slice.Check(result) {
-		return fmt.Errorf("result is no slice")
+		return 0, fmt.Errorf("result is no slice")
 	}
 	slic := reflect.ValueOf(result)
 	l := slic.Len()
 	if l == 0 {
-		return fmt.Errorf("result slice has length 0")
+		return 0, fmt.Errorf("result slice has length 0")
 	}
 	tags := meta.Struct.Tags(slic.Index(0).Interface())
 	options := []interface{}{Limit(l)}
@@ -1152,7 +1224,11 @@ func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interf
 
 	for k, v := range tags {
 		if t := v.Get("db.select"); t != "" && strings.Contains(t, tagVal) {
-			options = append(options, ø.Table.QueryField(k))
+			fi := ø.queryField(k, opts...)
+			if fi == nil {
+				panic("can't find field " + k + " : no Queryfield property of given fields or aliases")
+			}
+			options = append(options, fi)
 			order = append(order, k)
 		}
 	}
@@ -1160,7 +1236,7 @@ func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interf
 	options = append(options, opts...)
 	rows, err := ø.Find(options...)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("error in find: %s", err.Error())
 	}
 	i := 0
 	errs := []string{}
@@ -1172,14 +1248,14 @@ func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interf
 		}
 		e = ro.GetStruct(tagVal, slic.Index(i).Addr().Interface())
 		if e != nil {
-			errs = append(errs, e.Error())
+			errs = append(errs, fmt.Sprintf("error while scanning row %v: %s", i, e.Error()))
 		}
 		i++
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "\n"))
+		return i, fmt.Errorf(strings.Join(errs, "\n"))
 	}
-	return nil
+	return i, nil
 }
 
 func (ø *Row) SelectByStruct(structPtr interface{}, tagVal string, opts ...interface{}) error {
@@ -1189,7 +1265,11 @@ func (ø *Row) SelectByStruct(structPtr interface{}, tagVal string, opts ...inte
 
 	for k, v := range tags {
 		if t := v.Get("db.select"); t != "" && strings.Contains(t, tagVal) {
-			options = append(options, ø.Table.QueryField(k))
+			fi := ø.queryField(k, opts...)
+			if fi == nil {
+				panic("can't find field " + k + " : no Queryfield property of given fields or aliases")
+			}
+			options = append(options, fi)
 			order = append(order, k)
 		}
 	}

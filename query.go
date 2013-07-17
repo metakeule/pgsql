@@ -83,7 +83,7 @@ type Placeholder interface {
 	template.Replacer
 	Sqler
 	Set(val interface{}) template.Placeholder
-	Setf(format string, val interface{}) template.Placeholder
+	Setf(format string, val ...interface{}) template.Placeholder
 	String() string
 }
 
@@ -421,13 +421,27 @@ func (ø *JoinStruct) Sql() SqlType {
 }
 
 func As(sq Sqler, as string, typ Type) *AsStruct {
-	return &AsStruct{sq, as, typ}
+	return &AsStruct{Sqler: sq, As: as, Type: typ}
 }
 
 type AsStruct struct {
-	Sqler Sqler
-	As    string
-	Type  Type
+	Sqler      Sqler
+	As         string
+	Type       Type
+	queryField string // name of a field in a query struct that should match this field
+}
+
+// sets the queryField, allows chaining
+func (ø *AsStruct) SetQueryField(f string) *AsStruct {
+	if ø.queryField != "" {
+		panic("queryField already set to " + ø.queryField + ", can't change")
+	}
+	ø.queryField = f
+	return ø
+}
+
+func (ø *AsStruct) QueryField() string {
+	return ø.queryField
 }
 
 func (ø *AsStruct) Sql() string {
