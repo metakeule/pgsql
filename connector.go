@@ -19,6 +19,39 @@ type DB interface {
 	Begin() (tx *sql.Tx, ſ error)
 }
 
+/*
+func (ø *Row) setSearchPath() {
+	if !ø.isTransaction() {
+		if ø.Table.Schema != nil {
+			schemaName := ø.Table.Schema.Name
+			sql := `SET search_path = "` + schemaName + `"`
+			if ø.Debug {
+				fmt.Println(sql)
+			}
+			_, _ = ø.DB.Exec(sql)
+		}
+	}
+}
+*/
+/*
+type SchemaDb struct {
+	Name string
+	DB DB
+}
+
+func (ø *SchemaDb) setSearchPath(q) string {
+	return `SET search_path = "` + ø.Name + `" ;` + q
+}
+
+func (* SchemaDb) Exec(query string, args ...interface{}) (sql.Result, error) {
+
+}
+
+	Prepare(query string) (*sql.Stmt, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+*/
+
 var dbLock = make(chan int, 1)
 
 func Open(driverName, dataSourceName string) (ø *DbWrapper, ſ error) {

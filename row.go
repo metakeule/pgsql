@@ -519,10 +519,10 @@ func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 	opts := []interface{}{Limit(1)}
 	opts = append(opts, options...)
 	rows, err = ø.Find(opts...)
-	defer rows.Close()
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	rows.Next()
 	r, err = rows.ScanRow()
 	return

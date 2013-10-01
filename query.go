@@ -58,8 +58,8 @@ func handleSql(in interface{}) (out string) {
 var Transformer = map[string]func(interface{}) string{
 	"value":    escapeValue,
 	"sql":      handleSql,
-	"search%":  escapeSearchEnd,
-	"%search":  escapeSearchStart,
+	"%ssearch": escapeSearchEnd,
+	"search%":  escapeSearchStart,
 	"%search%": escapeSearchBoth,
 }
 
@@ -147,7 +147,7 @@ func escapeSearchStart(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape("%" + inString)
+	return escape(inString + "%")
 }
 
 func escapeSearchEnd(in interface{}) (out string) {
@@ -164,7 +164,7 @@ func escapeSearchEnd(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape(inString + "%")
+	return escape("%" + inString)
 }
 
 func escapeSearchBoth(in interface{}) (out string) {
