@@ -57,7 +57,7 @@ func handleSql(in interface{}) (out string) {
 var Transformer = map[string]func(interface{}) string{
 	"value":    escapeValue,
 	"sql":      handleSql,
-	"%ssearch": escapeSearchEnd,
+	"%search":  escapeSearchEnd,
 	"search%":  escapeSearchStart,
 	"%search%": escapeSearchBoth,
 }
