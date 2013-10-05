@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	// "github.com/metakeule/fastreplace"
-	"github.com/metakeule/template"
+	"github.com/metakeule/templ"
 	"strings"
 )
 
@@ -35,9 +35,8 @@ func escape(in string) (out string) {
 }
 
 func (ø SqlType) Placeholder() Placeholder {
-	t := template.NewPlaceholder("sql." + ø.String())
-	t.Transformer = handleSql
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder("sql."+ø.String(), handleSql)
+	return typedPlaceholder{&t}
 }
 
 func handleSql(in interface{}) (out string) {
@@ -58,8 +57,8 @@ func handleSql(in interface{}) (out string) {
 var Transformer = map[string]func(interface{}) string{
 	"value":    escapeValue,
 	"sql":      handleSql,
-	"search%":  escapeSearchEnd,
-	"%search":  escapeSearchStart,
+	"%ssearch": escapeSearchEnd,
+	"search%":  escapeSearchStart,
 	"%search%": escapeSearchBoth,
 }
 
@@ -80,57 +79,53 @@ func escapeValue(in interface{}) (out string) {
 }
 
 type Placeholder interface {
-	template.Replacer
+	templ.Setter
 	Sqler
-	Set(val interface{}) template.Placeholder
-	Setf(format string, val ...interface{}) template.Placeholder
-	String() string
+	Set(val interface{}) templ.Setter
+	Setf(format string, val ...interface{}) templ.Setter
+	// String() string
 }
 
-type typedPlaceholder struct{ template.Placeholder }
+type typedPlaceholder struct{ *templ.Placeholder }
 
 func (ø typedPlaceholder) Sql() SqlType {
-	return Sql(ø.Placeholder.String())
+	return Sql("@@" + ø.Placeholder.Name() + "@@")
+	//return Sql(ø.Placeholder.String())
 }
 
 type SearchStart string
 
 func (ø SearchStart) Placeholder() Placeholder {
-	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
-	t.Transformer = escapeSearchStart
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchStart)
+	return typedPlaceholder{&t}
 }
 
 type SearchEnd string
 
 func (ø SearchEnd) Placeholder() Placeholder {
-	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
-	t.Transformer = escapeSearchEnd
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchEnd)
+	return typedPlaceholder{&t}
 }
 
 type SearchBoth string
 
 func (ø SearchBoth) Placeholder() Placeholder {
-	t := template.NewPlaceholder(reflect.TypeOf(ø).Name() + "." + string(ø))
-	t.Transformer = escapeSearchBoth
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchBoth)
+	return typedPlaceholder{&t}
 }
 
 func (ø *Field) Placeholder() Placeholder {
-	t := template.NewPlaceholder(ø.Table.Name + "." + ø.Name)
 	fn := func(in interface{}) (out string) {
 		tv := ø.MustValue(in)
 		return tv.Sql().String()
 	}
-	t.Transformer = fn
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder(ø.Table.Name+"."+ø.Name, fn)
+	return typedPlaceholder{&t}
 }
 
 func (ø *TypedValue) Placeholder() Placeholder {
-	t := template.NewPlaceholder(ø.PgType.String())
-	t.Transformer = escapeValue
-	return typedPlaceholder{t}
+	t := templ.NewPlaceholder(ø.PgType.String(), escapeValue)
+	return typedPlaceholder{&t}
 }
 
 func escapeSearchStart(in interface{}) (out string) {
@@ -147,7 +142,7 @@ func escapeSearchStart(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape("%" + inString)
+	return escape(inString + "%")
 }
 
 func escapeSearchEnd(in interface{}) (out string) {
@@ -164,7 +159,7 @@ func escapeSearchEnd(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape(inString + "%")
+	return escape("%" + inString)
 }
 
 func escapeSearchBoth(in interface{}) (out string) {
@@ -186,7 +181,8 @@ func escapeSearchBoth(in interface{}) (out string) {
 
 type CompiledQuery struct {
 	//freplace *fastreplace.FReplace
-	*template.Template
+	//*template.Template
+	*templ.Template
 	Query Query
 }
 
@@ -213,9 +209,12 @@ func (ø *CompiledQuery) Instance() (c *CompiledQueryInstance) {
 }
 */
 
-func Compile(q Query) (c *CompiledQuery, ſ error) {
-	t, ſ := template.New(q.String())
-	t.Strict = true
+func Compile(name string, q Query) (c *CompiledQuery, ſ error) {
+	t := templ.New(name)
+	t.MustAdd(q.String())
+	ſ = t.Parse()
+	//t, ſ := template.New(q.String())
+	//t.Strict = true
 	c = &CompiledQuery{
 		Query:    q,
 		Template: t,
@@ -228,8 +227,8 @@ func Compile(q Query) (c *CompiledQuery, ſ error) {
 }
 
 // panics on error
-func MustCompile(q Query) *CompiledQuery {
-	c, e := Compile(q)
+func MustCompile(name string, q Query) *CompiledQuery {
+	c, e := Compile(name, q)
 	if e != nil {
 		panic(e.Error())
 	}

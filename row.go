@@ -264,7 +264,8 @@ func (ø *Row) set(o ...interface{}) (err error) {
 			//tv, err = field.Value(placeh.String())
 			//fmt.Printf("pgtype %s value %#v\n", tv.PgType.String(), tv.Value)
 			//tv.PgType = VarChar(255)
-			tv = &TypedValue{TextType, &pgInterpretedString{StringType: typeconverter.StringType(placeh.String())}, true}
+			//tv = &TypedValue{TextType, &pgInterpretedString{StringType: typeconverter.StringType(placeh.String())}, true}
+			tv = &TypedValue{TextType, &pgInterpretedString{StringType: typeconverter.StringType("@@" + placeh.Name() + "@@")}, true}
 			//fmt.Printf("pgtype %s value %#v\n", tv.PgType.String(), tv.Value)
 			//tv.PgType = VarChar(125)
 			//tv.dontChange = true
@@ -519,10 +520,10 @@ func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 	opts := []interface{}{Limit(1)}
 	opts = append(opts, options...)
 	rows, err = ø.Find(opts...)
-	defer rows.Close()
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 	rows.Next()
 	r, err = rows.ScanRow()
 	return

@@ -340,15 +340,15 @@ type MyInt int
 func (ø MyInt) Sql() SqlType { return Sql(fmt.Sprintf("select %v", ø)) }
 
 var toSqlTests = map[interface{}]string{
-	1:            `'1'::int`,
-	int32(2):     `'2'::int`,
-	int64(2):     `'2'::int`,
-	float64(3.5): `'3.5'::float`,
-	float32(3.5): `'3.5'::float`,
-	`3.0`:        `'3.0'::text`,
-	true:         `'true'::bool`,
-	ti:           `'` + timeString + `'::timestamptz`,
-	typeconverter.Json(`{"a":4}`): `'{"a":4}'::text`,
+	1:            `$userinput$1$userinput$::int`,
+	int32(2):     `$userinput$2$userinput$::int`,
+	int64(2):     `$userinput$2$userinput$::int`,
+	float64(3.5): `$userinput$3.5$userinput$::float`,
+	float32(3.5): `$userinput$3.5$userinput$::float`,
+	`3.0`:        `$userinput$3.0$userinput$::text`,
+	true:         `$userinput$true$userinput$::bool`,
+	ti:           `$userinput$` + timeString + `$userinput$::timestamptz`,
+	typeconverter.Json(`{"a":4}`): `$userinput${"a":4}$userinput$::text`,
 	Sql("select * from person"):   `select * from person`,
 	MyInt(4):                      `select 4`,
 }

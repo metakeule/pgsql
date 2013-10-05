@@ -35,7 +35,7 @@ func hasSql(s Sqler, subs string) bool {
 
 func TestInsert(t *testing.T) {
 	i := Insert(TABLE, Set(FirstName, "donald"))
-	res := `insert into "person" ("firstname") values ('donald'::varchar(123))`
+	res := `insert into "person" ("firstname") values ($userinput$donald$userinput$::varchar(123))`
 	if !hasSql(i, res) {
 		err(t, "sql should contain insert statement", normalize(i.Sql().String()), res)
 	}
@@ -44,7 +44,7 @@ func TestInsert(t *testing.T) {
 func TestInsertMap(t *testing.T) {
 	m := map[*Field]interface{}{FirstName: "donald"}
 	i := InsertMap(TABLE, m)
-	res := `insert into "person" ("firstname") values ('donald'::varchar(123))`
+	res := `insert into "person" ("firstname") values ($userinput$donald$userinput$::varchar(123))`
 	if !hasSql(i, res) {
 		err(t, "sql should contain insert (map) statement", normalize(i.Sql().String()), res)
 	}
@@ -52,7 +52,7 @@ func TestInsertMap(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	i := Delete(TABLE, Where(Or(Equals(FirstName, "donald"), Equals(LastName, "duck"))))
-	res := `delete  from "person" where ("person"."firstname" = 'donald'::text) or ("person"."lastname" = 'duck'::text) `
+	res := `delete  from "person" where ("person"."firstname" = $userinput$donald$userinput$::text) or ("person"."lastname" = $userinput$duck$userinput$::text) `
 	if !hasSql(i, res) {
 		err(t, "sql should contain delete statement", normalize(i.Sql().String()), res)
 	}
@@ -60,7 +60,7 @@ func TestDelete(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	i := Update(TABLE, Set(FirstName, "daisy"), Where(In(FirstName, "donald", "dagobert")))
-	res := `update "person" set "firstname" = 'daisy'::varchar(123) where "person"."firstname" in('donald'::text, 'dagobert'::text) `
+	res := `update "person" set "firstname" = $userinput$daisy$userinput$::varchar(123) where "person"."firstname" in($userinput$donald$userinput$::text, $userinput$dagobert$userinput$::text) `
 	if !hasSql(i, res) {
 		err(t, "sql should contain update statement", normalize(i.Sql().String()), res)
 	}
@@ -68,7 +68,7 @@ func TestUpdate(t *testing.T) {
 
 func TestSelect(t *testing.T) {
 	i := Select(TABLE, FirstName, As(LastName, "Name", TextType), Where(In(FirstName, "donald", "dagobert")))
-	res := `select "person"."firstname", "person"."lastname" as "name" from "person" where "person"."firstname" in('donald'::text, 'dagobert'::text)`
+	res := `select "person"."firstname", "person"."lastname" as "name" from "person" where "person"."firstname" in($userinput$donald$userinput$::text, $userinput$dagobert$userinput$::text)`
 	if !hasSql(i, res) {
 		err(t, "sql should contain select statement", normalize(i.Sql().String()), res)
 	}

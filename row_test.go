@@ -158,6 +158,7 @@ func TestRowSelect(t *testing.T) {
 	}
 }
 
+/*
 func TestRowValidation(t *testing.T) {
 	p := NewPerson()
 	p.Set(LASTNAME, "DückDückDückDückDückDückD", FIRSTNAME, "12", VITA, "a", AGE, 22)
@@ -216,3 +217,4 @@ func TestRowValidation(t *testing.T) {
 		err(t, "should have one validation error", e, `error when setting field "person"."FirstName" to value 12: value 12 type int is incompatible with type varchar(123)`)
 	}
 }
+*/
