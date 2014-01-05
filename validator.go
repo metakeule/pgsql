@@ -17,13 +17,18 @@ type FieldValidator interface {
 type TypeValidator struct{ *Field }
 
 func (ø *TypeValidator) Validate(value interface{}) error {
-	if value == nil {
-		if !ø.Field.Is(NullAllowed) && ø.Field.Default == nil {
-			return fmt.Errorf("nil (null) is not allowed")
 
+	/*
+		// don#t check it here, let the database do the check.
+		// this way we don't get false positives on updates that do not change values
+		if value == nil {
+			if !ø.Field.Is(NullAllowed) && ø.Field.Default == nil {
+				return fmt.Errorf("nil (null) is not allowed")
+
+			}
+			return nil
 		}
-		return nil
-	}
+	*/
 	valString := ToString(value)
 	switch ø.Field.Type {
 	case IntType:
