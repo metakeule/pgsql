@@ -155,7 +155,7 @@ func setFieldInStruct(vl reflect.Value, fieldName string, tagVal string, v *Type
 }
 
 //ro.Get(artist.Id, &a.Id, artist.FirstName, &a.FirstName, artist.LastName, &a.LastName, artist.GalleryArtist, &a.GalleryArtist, artist.Vita, &a.Vita, artist.Area, &ar)
-func (ø *Row) GetStruct(tagVal string, s interface{}) error {
+func (ø *Row) GetStruct(tagVal string, s interface{}) (err error) {
 	fv := meta.Struct.FinalValue(s)
 
 	for f, v := range ø.values {
@@ -164,8 +164,10 @@ func (ø *Row) GetStruct(tagVal string, s interface{}) error {
 		}
 		// a field with this name does exist
 		if vl := fv.FieldByName(f.queryField); vl.IsValid() {
-			setFieldInStruct(vl, f.queryField, tagVal, v, s)
-
+			err = setFieldInStruct(vl, f.queryField, tagVal, v, s)
+			if err != nil {
+				return
+			}
 			/*
 				tag := meta.Struct.Tag(s, f.queryField)
 				// tag does match the given
@@ -181,11 +183,17 @@ func (ø *Row) GetStruct(tagVal string, s interface{}) error {
 
 	for f, v := range ø.aliasValues {
 		if vl := fv.FieldByName(f.queryField); vl.IsValid() {
-			setFieldInStruct(vl, f.queryField, tagVal, v, s)
+			err = setFieldInStruct(vl, f.queryField, tagVal, v, s)
+			if err != nil {
+				return
+			}
 			continue
 		}
 		if vl := fv.FieldByName(f.As); vl.IsValid() {
-			setFieldInStruct(vl, f.As, tagVal, v, s)
+			err = setFieldInStruct(vl, f.As, tagVal, v, s)
+			if err != nil {
+				return
+			}
 			continue
 		}
 		/*
