@@ -129,6 +129,7 @@ func TestRowInsert(t *testing.T) {
 }
 */
 
+/*
 func TestRowUpdate(t *testing.T) {
 	p := NewPerson()
 	p.Set(ID, 2, FIRSTNAME, "Donald", LASTNAME, "Duck")
@@ -138,6 +139,7 @@ func TestRowUpdate(t *testing.T) {
 		err(t, "update statement should contain UPDATE", lastQuery(), "UPDATE")
 	}
 }
+*/
 
 func TestRowDelete(t *testing.T) {
 	p := NewPerson()

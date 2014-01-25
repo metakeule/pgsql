@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"fmt"
+	"github.com/metakeule/fmtdate"
 	"strconv"
 	"time"
 	// 	"encoding/xml"
@@ -49,29 +50,38 @@ var TypeNames = map[Type]string{
 	HtmlType:        "text",
 	IntsType:        "integer[]",
 	StringsType:     "character varying[]",
-	UuidType:        "uuid",
-	LtreeType:       "ltree",
-	TriggerType:     "trigger",
+	BoolsType:       "boolean[]",
+	//FloatsType:      "double precision[]",
+	FloatsType:       "float[]",
+	TimeStampsTZType: "timestamptz[]",
+	UuidType:         "uuid",
+	LtreeType:        "ltree",
+	TriggerType:      "trigger",
+	JsonType:         "json",
 }
 
 // uuid NOT NULL DEFAULT uuid_generate_v4()
 
 var TypeCompatibles = map[Type][]Type{
-	IntType:         []Type{IntType},
-	IntsType:        []Type{IntsType, TextType},
-	StringsType:     []Type{StringsType, TextType},
-	FloatType:       []Type{IntType, FloatType},
-	TextType:        []Type{TextType, XmlType},
-	BoolType:        []Type{BoolType},
-	DateType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
-	TimeType:        []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
-	XmlType:         []Type{XmlType, TextType},
-	HtmlType:        []Type{HtmlType, TextType},
-	UuidType:        []Type{UuidType, TextType},
-	LtreeType:       []Type{LtreeType, TextType},
-	TriggerType:     []Type{TriggerType, TextType},
-	TimeStampTZType: []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
-	TimeStampType:   []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	IntType:          []Type{IntType},
+	IntsType:         []Type{IntsType, TextType},
+	StringsType:      []Type{StringsType, TextType},
+	BoolsType:        []Type{BoolsType, TextType},
+	FloatsType:       []Type{FloatsType, TextType},
+	TimeStampsTZType: []Type{TimeStampsTZType, TextType},
+	FloatType:        []Type{IntType, FloatType},
+	TextType:         []Type{TextType, XmlType},
+	BoolType:         []Type{BoolType},
+	DateType:         []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	TimeType:         []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	XmlType:          []Type{XmlType, TextType},
+	HtmlType:         []Type{HtmlType, TextType},
+	UuidType:         []Type{UuidType, TextType},
+	LtreeType:        []Type{LtreeType, TextType},
+	TriggerType:      []Type{TriggerType, TextType},
+	TimeStampTZType:  []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	TimeStampType:    []Type{TextType, DateType, TimeType, TimeStampTZType, TimeStampType},
+	JsonType:         []Type{JsonType, TextType},
 }
 
 func (ø Type) IsCompatible(other Type) bool {
@@ -108,6 +118,10 @@ const (
 	UuidType
 	LtreeType
 	TriggerType
+	BoolsType
+	FloatsType
+	TimeStampsTZType
+	JsonType
 )
 
 var TypeConverter = NewTypeConverter()
@@ -127,19 +141,23 @@ func ToSql(i interface{}) Sqler {
 }
 
 var TypeDefaults = map[Type]interface{}{
-	TextType:        "",
-	IntType:         0,
-	FloatType:       float32(0),
-	BoolType:        false,
-	TimeStampTZType: time.Now(),
-	TimeStampType:   time.Now(),
-	DateType:        time.Now(),
-	TimeType:        time.Now(),
-	XmlType:         "",
-	HtmlType:        "",
-	IntsType:        []int{},
-	StringsType:     []string{},
-	UuidType:        "",
+	TextType:         "",
+	IntType:          0,
+	FloatType:        float32(0),
+	BoolType:         false,
+	TimeStampTZType:  time.Now(),
+	TimeStampType:    time.Now(),
+	DateType:         time.Now(),
+	TimeType:         time.Now(),
+	XmlType:          "",
+	HtmlType:         "",
+	IntsType:         []int{},
+	StringsType:      []string{},
+	UuidType:         "",
+	BoolsType:        []bool{},
+	FloatsType:       []float64{},
+	TimeStampsTZType: []time.Time{},
+	JsonType:         "{}",
 	// LtreeType:       "ltree",
 	// TriggerType:     "trigger",
 }
@@ -167,6 +185,9 @@ var arrInstance = []interface{}{}
 var typedValueInstance = TypedValue{}
 var sqlInstance = Sql("")
 var typeInstance = Type(0)
+var boolsInstance = []bool{}
+var floatsInstance = []float64{}
+var timesInstance = []time.Time{}
 
 type intsStringer []int
 
@@ -204,6 +225,63 @@ func (ø stringsStringer) Strings() []string {
 
 type Stringser interface {
 	Strings() []string
+}
+
+type boolsStringer []bool
+
+func (ø boolsStringer) String() string {
+	s := `{%s}`
+	str := []string{}
+	for _, i := range ø {
+		str = append(str, fmt.Sprintf("%v", i))
+	}
+	return fmt.Sprintf(s, strings.Join(str, ","))
+}
+
+func (ø boolsStringer) Bools() []bool {
+	return []bool(ø)
+}
+
+type Boolser interface {
+	Bools() []bool
+}
+
+type floatsStringer []float64
+
+func (ø floatsStringer) String() string {
+	s := `{%s}`
+	str := []string{}
+	for _, i := range ø {
+		str = append(str, fmt.Sprintf("%v", i))
+	}
+	return fmt.Sprintf(s, strings.Join(str, ","))
+}
+
+func (ø floatsStringer) Floats() []float64 {
+	return []float64(ø)
+}
+
+type Floatser interface {
+	Floats() []float64
+}
+
+type timesStringer []time.Time
+
+func (ø timesStringer) String() string {
+	s := `{%s}`
+	str := []string{}
+	for _, i := range ø {
+		str = append(str, fmt.Sprintf("%v", i.Format(time.RFC3339)))
+	}
+	return fmt.Sprintf(s, strings.Join(str, ","))
+}
+
+func (ø timesStringer) Times() []time.Time {
+	return []time.Time(ø)
+}
+
+type Timeser interface {
+	Times() []time.Time
 }
 
 /*
@@ -275,6 +353,48 @@ func (ø *pgInterpretedString) Strings() (ses []string) {
 	return
 }
 
+func (ø *pgInterpretedString) Bools() (bs []bool) {
+	str := ø.StringType.String()
+	inner := str[1 : len(str)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		b, ſ := strconv.ParseBool(strings.Trim(s, `"`))
+		if ſ == nil {
+			bs = append(bs, b)
+		}
+	}
+	return
+}
+
+func (ø *pgInterpretedString) Floats() (f []float64) {
+	str := ø.StringType.String()
+	inner := str[1 : len(str)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		ff, ſ := strconv.ParseFloat(strings.Trim(s, `"`), 64)
+		if ſ == nil {
+			f = append(f, ff)
+		}
+	}
+	return
+	// return stringToInts(ø.StringType.String())
+}
+
+func (ø *pgInterpretedString) Times() (f []time.Time) {
+	str := ø.StringType.String()
+	inner := str[1 : len(str)-1]
+	a := strings.Split(inner, ",")
+	for _, s := range a {
+		ff, ſ := time.Parse(time.RFC3339, strings.Trim(s, `"`))
+		//ff, ſ := strconv.ParseFloat(strings.Trim(s, `"`), 64)
+		if ſ == nil {
+			f = append(f, ff)
+		}
+	}
+	return
+	// return stringToInts(ø.StringType.String())
+}
+
 //typeconverter.String
 
 func NewTypeConverter() (ø *typeconverter.BasicConverter) {
@@ -308,6 +428,12 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t), false})
 		case []string:
 			err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(t), false})
+		case []bool:
+			err = ø.Output.Dispatch(to, &TypedValue{BoolsType, boolsStringer(t), false})
+		case []float64:
+			err = ø.Output.Dispatch(to, &TypedValue{FloatsType, floatsStringer(t), false})
+		case []time.Time:
+			err = ø.Output.Dispatch(to, &TypedValue{TimeStampsTZType, timesStringer(t), false})
 		case *int:
 			err = ø.Output.Dispatch(to, &TypedValue{IntType, typeconverter.Int(*t), false})
 		case *int32:
@@ -363,6 +489,9 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Input.SetHandler(typeInstance, inSwitch)
 	ø.Input.SetHandler(intsInstance, inSwitch)
 	ø.Input.SetHandler(stringsInstance, inSwitch)
+	ø.Input.SetHandler(boolsInstance, inSwitch)
+	ø.Input.SetHandler(floatsInstance, inSwitch)
+	ø.Input.SetHandler(timesInstance, inSwitch)
 
 	outSwitch := func(out interface{}, in interface{}) (err error) {
 		switch t := out.(type) {
@@ -402,6 +531,12 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 			*out.(*[]int) = in.(*TypedValue).Value.(Intser).Ints()
 		case *[]string:
 			*out.(*[]string) = in.(*TypedValue).Value.(Stringser).Strings()
+		case *[]bool:
+			*out.(*[]bool) = in.(*TypedValue).Value.(Boolser).Bools()
+		case *[]float64:
+			*out.(*[]float64) = in.(*TypedValue).Value.(Floatser).Floats()
+		case *[]time.Time:
+			*out.(*[]time.Time) = in.(*TypedValue).Value.(Timeser).Times()
 		case *SqlType:
 			*out.(*SqlType) = in.(Sqler).Sql()
 		case *Type:
@@ -426,6 +561,9 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Output.SetHandler(&sqlInstance, outSwitch)
 	ø.Output.SetHandler(&intsInstance, outSwitch)
 	ø.Output.SetHandler(&stringsInstance, outSwitch)
+	ø.Output.SetHandler(&boolsInstance, outSwitch)
+	ø.Output.SetHandler(&floatsInstance, outSwitch)
+	ø.Output.SetHandler(&timesInstance, outSwitch)
 	return
 }
 
@@ -486,4 +624,62 @@ func IsVarChar(t Type) bool {
 		return true
 	}
 	return false
+}
+
+type NullTime struct {
+	*time.Time
+	Valid bool
+}
+
+func (n *NullTime) Scan(value interface{}) (err error) {
+	//fmt.Printf("nulltime scan: %#v\n", value)
+	if value == nil {
+		n.Time = nil
+		n.Valid = false
+		return nil
+	}
+
+	switch v := value.(type) {
+	case time.Time:
+		n.Time = &v
+		n.Valid = true
+	case *time.Time:
+		n.Time = v
+		n.Valid = true
+	case string:
+		if v == "" {
+			n.Time = nil
+			n.Valid = false
+			return nil
+		}
+		n.Valid = true
+		var t time.Time
+		t, err = fmtdate.Parse("YYYY-MM-DD hh:mm:ss", v)
+		n.Time = &t
+	case []byte:
+		s := string(v)
+		if s == "" {
+			n.Time = nil
+			n.Valid = false
+			return nil
+		}
+		n.Valid = true
+		var t time.Time
+		t, err = fmtdate.Parse("YYYY-MM-DD hh:mm:ss", s)
+		n.Time = &t
+	default:
+		n.Time = nil
+		n.Valid = false
+		return fmt.Errorf("unsupported type for time: %T", value)
+	}
+
+	return
+}
+
+func (n *NullTime) TypedValue() *TypedValue {
+	if n.Valid {
+		return &TypedValue{TimeType, typeconverter.Time(*n.Time), false}
+	}
+	//	return &TypedValue{NullType, Sql("NULL"), false}
+	return &TypedValue{NullType, nil, false}
 }

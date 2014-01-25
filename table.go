@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"fmt"
+	//	. "github.com/metakeule/nil"
 	"strings"
 )
 
@@ -137,18 +138,21 @@ func (ø *Table) IsPrimaryKey(f *Field) (is bool) {
 func (ø *Table) Validate(values map[*Field]interface{}) (errs map[Sqler]error) {
 	errs = map[Sqler]error{}
 	//pkey := ø.PrimaryKey
-	for _, f := range ø.Fields {
+	//for _, f := range ø.Fields {
+	for f := range values {
 		// don't validate empty ids
 		if ø.IsPrimaryKey(f) && values[f] == nil {
 			continue
 		}
 
 		err := f.Validate(values[f])
+		//fmt.Printf("VALIDATING %s: %s\n", f.Name, err)
 		if err != nil {
 			errs[f] = err
 		}
 	}
 	for _, val := range ø.Validations {
+		//		fmt.Println("custom validation")
 		err := val.ValidateRow(values)
 		if err != nil {
 			errs[ø] = err

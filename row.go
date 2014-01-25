@@ -232,6 +232,15 @@ func (ø *Row) GetString(field interface{}) (s string) {
 }
 
 func (ø *Row) ValidateAll() (errs map[Sqler]error) {
+	vals := []string{}
+	vs := ø.Values()
+
+	for vf := range vs {
+		vals = append(vals, vf.Name)
+	}
+
+	// fmt.Printf("values: %#v\n", vals)
+
 	return ø.Table.Validate(ø.Values())
 }
 
@@ -532,8 +541,12 @@ func (ø *Row) Any(options ...interface{}) (r *Row, err error) {
 		return
 	}
 	defer rows.Close()
-	rows.Next()
-	r, err = rows.ScanRow()
+
+	if rows.Next() {
+		r, err = rows.ScanRow()
+	} else {
+		err = fmt.Errorf("no rows found")
+	}
 	return
 }
 
@@ -598,6 +611,31 @@ func (ø *Row) Result(tagVal string, structPtr interface{}, findOptions ...inter
 	return row.GetStruct(tagVal, structPtr)
 }
 
+/*
+type NullBool struct {
+   137		Bool  bool
+   138		Valid bool // Valid is true if Bool is not NULL
+   139	}
+   140
+   141	// Scan implements the Scanner interface.
+   142	func (n *NullBool) Scan(value interface{}) error {
+   143		if value == nil {
+   144			n.Bool, n.Valid = false, false
+   145			return nil
+   146		}
+   147		n.Valid = true
+   148		return convertAssign(&n.Bool, value)
+   149	}
+   150
+   151	// Value implements the driver Valuer interface.
+   152	func (n NullBool) Value() (driver.Value, error) {
+   153		if !n.Valid {
+   154			return nil, nil
+   155		}
+   156		return n.Bool, nil
+   157	}
+*/
+
 //func (ø *Row) QueryByStruct()
 
 func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
@@ -612,6 +650,7 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 	}
 	scanF := []interface{}{}
 	for _, field := range fields {
+
 		switch f := field.(type) {
 		case *Field:
 			// make default values and append them
@@ -642,8 +681,16 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				}
 
 			case TimeStampTZType, TimeStampType, DateType, TimeType:
-				var t time.Time
-				scanF = append(scanF, &t)
+				//f.Type.String()
+				//				fmt.Printf("scanning field %v is timelike, nullallowed: %v\n", f.Type.String(), f.Is(NullAllowed))
+				if f.Is(NullAllowed) {
+					var tiNull NullTime
+					scanF = append(scanF, &tiNull)
+					//	var s
+				} else {
+					var t time.Time
+					scanF = append(scanF, &t)
+				}
 			default:
 				if f.Is(NullAllowed) {
 					var sNull sql.NullString
@@ -677,6 +724,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 	}
 	err = row.Scan(scanF...)
 	if err != nil {
+		//	panic(err.Error())
+		fmt.Printf("scanF had errors: %#v\n", err)
 		return
 	}
 	for i, res := range scanF {
@@ -718,6 +767,16 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 			case *sql.NullString:
 				if (*v).Valid {
 					e := Convert((*v).String, tv)
+					if e != nil {
+						err = e
+						return
+					}
+				} else {
+					continue
+				}
+			case *NullTime:
+				if (*v).Valid {
+					e := Convert((*v).Time, tv)
 					if e != nil {
 						err = e
 						return
@@ -982,32 +1041,13 @@ func (ø *Row) Insert() (err error) {
 	*/
 
 	if len(ø.PrimaryKey) == 1 {
-		// t := ø.PrimaryKey[0].Type
 		var i string
-		// ø.setSearchPath()
-		//r, err := ø.DB.Query(u.String())
-		r, err := ø.Query(u)
-		if err != nil || r == nil {
-			return err
-		}
-		r.Next()
-		//err := ø.DB.QueryRow(u.String()).Scan(&i)
-		err = r.Scan(&i)
-		r.Close()
-		//i := 0
-		//i, err := r.LastInsertId()
-		//fmt.Println(ø.LastSql)
-		//fmt.Printf("last id %#v\n", i)
-		//fmt.Printf("type %#v\n", ø.PrimaryKey[0].Type)
+		err := ø.DB.QueryRow(u.String()).Scan(&i)
 		if err != nil {
 			fmt.Printf("Error while inserting: %v\n", err.Error())
 			return err
 		}
-		//r.Next()
-		//r.Scan(&i)
 		tv := &TypedValue{ø.PrimaryKey[0].Type, NewPgInterpretedString(i), false}
-		// Convert(i, tv)
-		//fmt.Printf("converted %#v\n", tv)
 		ø.values[ø.PrimaryKey[0]] = tv
 	} else {
 		_, err := ø.Exec(u)
