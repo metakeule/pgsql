@@ -5,11 +5,11 @@ import (
 	"runtime"
 )
 
-type flag int
+type Flag int
 
 const (
 	_                    = iota
-	hasDefaults     flag = 1 << iota
+	hasDefaults     Flag = 1 << iota
 	NullAllowed          // field may have null values
 	PrimaryKey           // field is primary key
 	Indexed              // field is indexed
@@ -43,7 +43,7 @@ func backtrace() (btr []string) {
 
 type Field struct {
 	Name        string
-	flags       flag
+	flags       Flag
 	Default     Sqler
 	Type        Type
 	Table       *Table
@@ -148,7 +148,7 @@ func (ø *Field) Add(options ...interface{}) {
 			ø.Table = v
 		case Type:
 			ø.Type = v
-		case flag:
+		case Flag:
 			ø.flags = ø.flags | v
 		case *Field:
 			ø.ForeignKey = v
@@ -174,7 +174,7 @@ func (ø *Field) Add(options ...interface{}) {
 // 	Is(NullAllowed)
 //
 // checks is null is allowed
-func (ø *Field) Is(f flag) bool {
+func (ø *Field) Is(f Flag) bool {
 	return ø.flags&f != 0
 }
 
