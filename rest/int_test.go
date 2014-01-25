@@ -1,0 +1,105 @@
+package rest
+
+import (
+	"fmt"
+	"github.com/go-on/fat"
+	// . "github.com/metakeule/pgsql"
+	. "github.com/metakeule/pgsql/fat"
+	"testing"
+)
+
+type IntTest struct {
+	Id      *fat.Field `type:"string uuid" db:"id UUIDGEN PKEY" rest:" R "`
+	Int     *fat.Field `type:"int"         db:"int"             rest:"CRU"`
+	IntNull *fat.Field `type:"int"         db:"intnull NULL"    rest:" RU"`
+}
+
+var INT_TEST = fat.Proto(&IntTest{}).(*IntTest)
+var RESTIntTest *REST
+
+func init() {
+	MustRegisterTable("inttest", INT_TEST)
+
+	db.Exec("DROP TABLE inttest")
+
+	intTestTable := TableOf(INT_TEST)
+	_, e := db.Exec(intTestTable.Create().String())
+	if e != nil {
+		panic(fmt.Sprintf("Can't create table inttest: \nError: %s\nSql: %s\n", e.Error(),
+			intTestTable.Create()))
+	}
+
+	RESTIntTest = NewREST(INT_TEST)
+}
+
+func TestIntCreate(t *testing.T) {
+	id, err := RESTIntTest.Create(db, b(`
+	{
+		"Int": 2
+	}
+ 	`))
+
+	if err != nil {
+		t.Errorf("can't create IntTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = RESTIntTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created inttest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Int"]) != "2" {
+		t.Errorf("inttest Int is not 2, but %#v", x["Int"])
+	}
+
+	if x["IntNull"] != nil {
+		t.Errorf("inttest IntNull is %#v, but should be nil", x["IntNull"])
+	}
+
+}
+
+func TestIntUpdate(t *testing.T) {
+	id, _ := RESTIntTest.Create(db, b(`
+	{
+		"Int": 2
+	}
+	`))
+
+	var x map[string]interface{}
+	err := RESTIntTest.Update(db, id, b(`
+	{
+		"Int": 3,
+		"IntNull": 4
+	}
+	`))
+
+	if err != nil {
+		t.Errorf("can't update inttest with id %s: %s", id, err)
+		return
+	}
+
+	x, err = RESTIntTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created inttest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Int"]) != "3" {
+		t.Errorf("inttest Int is not 3, but %#v", x["Int"])
+	}
+
+	if jsonify(x["IntNull"]) != "4" {
+		t.Errorf("inttest IntNull is not 4, but %#v", x["IntNull"])
+	}
+}
