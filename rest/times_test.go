@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type TimesTest struct {
 }
 
 var TIMES_TEST = fat.Proto(&TimesTest{}).(*TimesTest)
-var RESTTimesTest *REST
+var CRUDTimesTest *CRUD
 
 func init() {
 	MustRegisterTable("timestest", TIMES_TEST)
@@ -29,11 +29,11 @@ func init() {
 			timesTestTable.Create()))
 	}
 
-	RESTTimesTest = NewREST(TIMES_TEST)
+	CRUDTimesTest = NewCRUD(TIMES_TEST)
 }
 
 func TestTimesCreate(t *testing.T) {
-	id, err := RESTTimesTest.Create(db, b(`
+	id, err := CRUDTimesTest.Create(db, b(`
 	{
 		"Times": ["2001-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
 	}
@@ -51,7 +51,7 @@ func TestTimesCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTTimesTest.Read(db, id)
+	x, err = CRUDTimesTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created timestest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestTimesCreate(t *testing.T) {
 }
 
 func TestTimesUpdate(t *testing.T) {
-	id, _ := RESTTimesTest.Create(db, b(`
+	id, _ := CRUDTimesTest.Create(db, b(`
 	{
 		"Times": ["2001-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTTimesTest.Update(db, id, b(`
+	err := CRUDTimesTest.Update(db, id, b(`
 	{
 		"Times": ["2001-04-13T23:04:45Z","2011-12-13T23:04:45Z"],
 		"TimesNull": ["2006-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
@@ -88,7 +88,7 @@ func TestTimesUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTTimesTest.Read(db, id)
+	x, err = CRUDTimesTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created timestest with id %s: %s", id, err)

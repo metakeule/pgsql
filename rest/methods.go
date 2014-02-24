@@ -3,14 +3,15 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-on/fat"
-	. "github.com/metakeule/pgsql"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/go-on/fat"
+	. "github.com/metakeule/pgsql"
 )
 
-func (r *REST) Create(db DB, json_ []byte) (id string, err error) {
+func (r *CRUD) Create(db DB, json_ []byte, validateOnly bool, singleField string) (id string, err error) {
 	m := map[string]interface{}{}
 	err = json.Unmarshal(json_, &m)
 	if err != nil {
@@ -20,9 +21,29 @@ func (r *REST) Create(db DB, json_ []byte) (id string, err error) {
 	_, fields := r.queryParams("C")
 	fatstruc := r.newObject()
 
-	err = r.setMapToStruct(m, fields, fatstruc)
-	if err != nil {
-		fmt.Println("set map failed")
+	if singleField != "" {
+		exists := false
+
+		for _, fff := range fields {
+			if fff == singleField {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			err = fieldNotAllowed{} // fmt.Errorf("field not allowed for method")
+			return
+		}
+
+		fields = []string{singleField}
+	}
+
+	errs := r.setMapToStruct(m, fields, fatstruc)
+	if len(errs) > 0 {
+		//err = NewValidationError(errs)
+		err = &validationError{errs}
+		// fmt.Println("set map failed")
 		return
 	}
 
@@ -58,7 +79,12 @@ func (r *REST) Create(db DB, json_ []byte) (id string, err error) {
 	}
 	err = row.Validate()
 	if err != nil {
-		fmt.Printf("error in validation: %s\n", err)
+		err = &validationError{map[string]error{"": err}}
+		// fmt.Printf("error in validation: %s\n", err)
+		return
+	}
+
+	if validateOnly {
 		return
 	}
 	err = row.Save()
@@ -66,7 +92,7 @@ func (r *REST) Create(db DB, json_ []byte) (id string, err error) {
 	return
 }
 
-func (r *REST) addWhereId(query []interface{}, id string) (q []interface{}, err error) {
+func (r *CRUD) addWhereId(query []interface{}, id string) (q []interface{}, err error) {
 	var w *WhereStruct
 	if r.pKeyIsString {
 		w = Where(
@@ -92,7 +118,7 @@ func (r *REST) addWhereId(query []interface{}, id string) (q []interface{}, err 
 	return
 }
 
-func (r *REST) _Read(db DB, id string) (rr *Row, fields []string, err error) {
+func (r *CRUD) _Read(db DB, id string) (rr *Row, fields []string, err error) {
 	row := NewRow(db, r.table)
 	var query []interface{}
 	query, fields = r.queryParams("R")
@@ -105,7 +131,7 @@ func (r *REST) _Read(db DB, id string) (rr *Row, fields []string, err error) {
 	return
 }
 
-func (r *REST) Read(db DB, id string) (m map[string]interface{}, err error) {
+func (r *CRUD) Read(db DB, id string) (m map[string]interface{}, err error) {
 	row := NewRow(db, r.table)
 	query, fields := r.queryParams("R")
 	query, err = r.addWhereId(query, id)
@@ -120,7 +146,7 @@ func (r *REST) Read(db DB, id string) (m map[string]interface{}, err error) {
 		return
 	}
 	if !rr.Next() {
-		return nil, fmt.Errorf("not found: %v", id)
+		return nil, notFound{}
 	}
 
 	ro, e := rr.ScanRow()
@@ -138,7 +164,7 @@ func (r *REST) Read(db DB, id string) (m map[string]interface{}, err error) {
 	return
 }
 
-func (r *REST) Update(db DB, id string, json_ []byte) (err error) {
+func (r *CRUD) Update(db DB, id string, json_ []byte, validateOnly bool, singleField string) (err error) {
 	m := map[string]interface{}{}
 	err = json.Unmarshal(json_, &m)
 	if err != nil {
@@ -157,9 +183,10 @@ func (r *REST) Update(db DB, id string, json_ []byte) (err error) {
 
 	var rr *Row
 	rr, err = row.Any(query...)
-	if err != nil {
-		fmt.Printf("select error: %s\n", err.Error())
-		return
+	if err != nil || rr == nil {
+		return notFound{}
+		// fmt.Printf("select error: %s\n", err.Error())
+		// return
 	}
 	fatstruc := r.newObject()
 	err = r.scanToStruct(rr, fields, fatstruc)
@@ -167,10 +194,31 @@ func (r *REST) Update(db DB, id string, json_ []byte) (err error) {
 		fmt.Printf("scan error: %s\n", err)
 		return err
 	}
-	err = r.setMapToStruct(m, fields, fatstruc)
-	if err != nil {
+
+	if singleField != "" {
+		exists := false
+
+		for _, fff := range fields {
+			if fff == singleField {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			err = fieldNotAllowed{} // fmt.Errorf("field not allowed for method")
+			return
+		}
+
+		fields = []string{singleField}
+	}
+
+	errs := r.setMapToStruct(m, fields, fatstruc)
+	if len(errs) > 0 {
+		err = &validationError{errs}
 		fmt.Printf("set error: %s\n", err)
-		return err
+		// return err
+		return
 	}
 	fs := reflect.ValueOf(fatstruc).Elem()
 	for _, fld := range fields {
@@ -199,17 +247,20 @@ func (r *REST) Update(db DB, id string, json_ []byte) (err error) {
 
 	err = row.Validate()
 	if err != nil {
-		fmt.Printf("validation error: %s\n", err)
+		return &validationError{map[string]error{"": err}}
+	}
+
+	if validateOnly {
 		return
 	}
 	return row.Save()
 }
 
-func (r *REST) Delete(db DB, id string) error {
+func (r *CRUD) Delete(db DB, id string) error {
 	row := NewRow(db, r.table)
 	err := row.SetId(id)
 	if err != nil {
-		return ValidationError(map[string]string{r.primaryKey.Name: err.Error()})
+		return &validationError{map[string]error{r.primaryKey.Name: err}}
 	}
 	err = row.Delete()
 	if err != nil {
@@ -218,14 +269,29 @@ func (r *REST) Delete(db DB, id string) error {
 	return nil
 }
 
-func (r *REST) List(db DB, limit int, queryParams ...interface{}) (ms []map[string]interface{}, err error) {
+// , rangeReq.Desc, sortBy, rangeReq.Start
+// total, objs, err := r.List(db, limit, rangeReq.Desc, sortBy, rangeReq.Start)
+
+func (r *CRUD) List(db DB, limit int, direction Direction, sortBy *Field, offset int) (total int, ms []map[string]interface{}, err error) {
 	ms = []map[string]interface{}{}
 	row := NewRow(db, r.table)
-	query, fields := r.queryParams("L")
-	query = append(query, Limit(limit))
-	if len(queryParams) > 0 {
-		query = append(query, queryParams...)
+
+	countRow := db.QueryRow(Select(As(Sql(`count("`+r.primaryKey.Name+`")`), "no", IntType), r.table).Sql().String())
+
+	err = countRow.Scan(&total)
+
+	if err != nil {
+		return
 	}
+
+	query, fields := r.queryParams("L")
+	query = append(query, Limit(limit), OrderBy(sortBy, direction), Offset(offset))
+
+	/*
+		if len(queryParams) > 0 {
+			query = append(query, queryParams...)
+		}
+	*/
 
 	var rr *Rows
 	rr, err = row.Find(query...)

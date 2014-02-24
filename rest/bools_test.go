@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
 	"testing"
 )
 
@@ -15,7 +14,7 @@ type BoolsTest struct {
 }
 
 var BOOLS_TEST = fat.Proto(&BoolsTest{}).(*BoolsTest)
-var RESTBoolsTest *REST
+var CRUDBoolsTest *CRUD
 
 func init() {
 	MustRegisterTable("boolstest", BOOLS_TEST)
@@ -29,11 +28,11 @@ func init() {
 			boolsTestTable.Create()))
 	}
 
-	RESTBoolsTest = NewREST(BOOLS_TEST)
+	CRUDBoolsTest = NewCRUD(BOOLS_TEST)
 }
 
 func TestBoolsCreate(t *testing.T) {
-	id, err := RESTBoolsTest.Create(db, b(`
+	id, err := CRUDBoolsTest.Create(db, b(`
 	{
 		"Bools": [true,false]
 	}
@@ -51,7 +50,7 @@ func TestBoolsCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTBoolsTest.Read(db, id)
+	x, err = CRUDBoolsTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created boolstest with id %s: %s", id, err)
@@ -69,14 +68,14 @@ func TestBoolsCreate(t *testing.T) {
 }
 
 func TestBoolsUpdate(t *testing.T) {
-	id, _ := RESTBoolsTest.Create(db, b(`
+	id, _ := CRUDBoolsTest.Create(db, b(`
 	{
 		"Bools": [true,false]
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTBoolsTest.Update(db, id, b(`
+	err := CRUDBoolsTest.Update(db, id, b(`
 	{
 		"Bools": [false,true],
 		"BoolsNull": [true,true]
@@ -88,7 +87,7 @@ func TestBoolsUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTBoolsTest.Read(db, id)
+	x, err = CRUDBoolsTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created boolstest with id %s: %s", id, err)

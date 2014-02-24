@@ -3,11 +3,12 @@ package pgsql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/metakeule/meta"
-	"github.com/metakeule/typeconverter"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/metakeule/meta"
+	"github.com/metakeule/typeconverter"
 )
 
 type PreValidate func(*Row) error
@@ -330,7 +331,7 @@ func (ø *Row) validate() (err error) {
 		for k, e := range errs {
 			errString = append(errString, fmt.Sprintf("\tValidation Error in %s: %s\n", k.Sql(), e.Error()))
 		}
-		return fmt.Errorf("%s\n", strings.Join(errString, "\n"))
+		return &ValidationError{Err: fmt.Errorf("%s\n", strings.Join(errString, "\n"))}
 	}
 	return
 }
@@ -427,7 +428,8 @@ func (ø *Row) AsStrings() (m map[string]string) {
 		var s string
 		err := Convert(val, &s)
 		if err != nil {
-			panic("can't convert to string: " + err.Error())
+			panic(convertError(field, val, err).Error())
+			// panic("can't convert to string: " + err.Error())
 		}
 		m[field.Name] = s
 	}
@@ -435,7 +437,12 @@ func (ø *Row) AsStrings() (m map[string]string) {
 		var s string
 		err := Convert(val, &s)
 		if err != nil {
-			panic("can't convert to string: " + err.Error())
+			err = &ValidationError{
+				Err:     fmt.Errorf("can't convert %#v to string for alias %s", val, as.As),
+				Details: err,
+			}
+			panic(err.Error())
+			// panic("can't convert to string: " + err.Error())
 		}
 		m[as.As] = s
 	}
@@ -478,7 +485,7 @@ func (ø *Row) Id() (vals []SqlType) {
 		var val SqlType
 		err := Convert(ø.values[pkey], &val)
 		if err != nil {
-			panic("can't get id for table " + ø.Table.Name)
+			panic("can't get id for table " + ø.Table.Name + ": " + err.Error())
 		}
 		vals = append(vals, val)
 	}
@@ -725,7 +732,7 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 	err = row.Scan(scanF...)
 	if err != nil {
 		//	panic(err.Error())
-		fmt.Printf("scanF had errors: %#v\n", err)
+		//		fmt.Printf("scanF had errors: %#v\n", err)
 		return
 	}
 	for i, res := range scanF {
@@ -738,7 +745,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Int64, tv)
 					if e != nil {
-						err = e
+						err = convertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -748,7 +756,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Float64, tv)
 					if e != nil {
-						err = e
+						err = convertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -758,7 +767,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Bool, tv)
 					if e != nil {
-						err = e
+						err = convertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -768,7 +778,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).String, tv)
 					if e != nil {
-						err = e
+						err = convertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -778,7 +789,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Time, tv)
 					if e != nil {
-						err = e
+						err = convertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -787,7 +799,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 			default:
 				e := Convert(v, tv)
 				if e != nil {
-					err = e
+					err = convertError(f, v, e)
+					// err = e
 					return
 				}
 			}
@@ -799,7 +812,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Int64, tv)
 					if e != nil {
-						err = e
+						err = aliasConvertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -809,7 +823,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Float64, tv)
 					if e != nil {
-						err = e
+						err = aliasConvertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -819,7 +834,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).Bool, tv)
 					if e != nil {
-						err = e
+						err = aliasConvertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -829,7 +845,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 				if (*v).Valid {
 					e := Convert((*v).String, tv)
 					if e != nil {
-						err = e
+						err = aliasConvertError(f, v, e)
+						// err = e
 						return
 					}
 				} else {
@@ -838,7 +855,8 @@ func (ø *Row) Scan(row *sql.Rows, fields ...interface{}) (err error) {
 			default:
 				e := Convert(v, tv)
 				if e != nil {
-					err = e
+					err = aliasConvertError(f, v, e)
+					// err = e
 					return
 				}
 			}
@@ -866,7 +884,7 @@ func (ø *Row) Reload() (err error) {
 		ø.Get(pk, &id)
 		ids = append(ids, id)
 	}
-	fmt.Printf("loaded ids to: %#v", ids)
+	// fmt.Printf("loaded ids to: %#v", ids)
 	return ø.Load(ids...)
 }
 
@@ -960,7 +978,8 @@ func (ø *Row) UpdateQuery(pkVals ...interface{}) Query {
 func (ø *Row) Update(pkVals ...interface{}) (err error) {
 	err = ø.Validate()
 	if err != nil {
-		return fmt.Errorf("Can't update row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+		//return fmt.Errorf("Can't update row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+		return
 	}
 	ø.setErrors = []error{}
 
@@ -1021,7 +1040,8 @@ func (ø *Row) InsertQuery() Query {
 func (ø *Row) Insert() (err error) {
 	err = ø.Validate()
 	if err != nil {
-		return fmt.Errorf("Can't insert row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+		// return fmt.Errorf("Can't insert row of %s:\n%s\n", ø.Table.Sql(), err.Error())
+		return
 	}
 	ø.setErrors = []error{}
 	for _, hook := range ø.PreInsert {
@@ -1044,7 +1064,7 @@ func (ø *Row) Insert() (err error) {
 		var i string
 		err := ø.DB.QueryRow(u.String()).Scan(&i)
 		if err != nil {
-			fmt.Printf("Error while inserting: %v\n", err.Error())
+			// fmt.Printf("Error while inserting: %v\n", err.Error())
 			return err
 		}
 		tv := &TypedValue{ø.PrimaryKey[0].Type, NewPgInterpretedString(i), false}
@@ -1115,6 +1135,17 @@ func (ø *Row) Select(objects ...interface{}) (r *sql.Rows, err error) {
 	return
 }
 
+/*
+TODO: change signature to
+	IsValid(f string, value interface{}) (error, bool)
+
+then it may be called like this
+
+  if err, is := IsValid(..) ; is {
+		// handle validation error
+  }
+
+*/
 func (ø *Row) IsValid(f string, value interface{}) bool {
 	field := ø.Table.Field(f)
 	tv := &TypedValue{PgType: field.Type}

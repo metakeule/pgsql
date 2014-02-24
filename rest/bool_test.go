@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
 	"testing"
 )
 
@@ -15,7 +14,7 @@ type BoolTest struct {
 }
 
 var BOOL_TEST = fat.Proto(&BoolTest{}).(*BoolTest)
-var RESTBoolTest *REST
+var CRUDBoolTest *CRUD
 
 func init() {
 	MustRegisterTable("booltest", BOOL_TEST)
@@ -29,11 +28,11 @@ func init() {
 			boolTestTable.Create()))
 	}
 
-	RESTBoolTest = NewREST(BOOL_TEST)
+	CRUDBoolTest = NewCRUD(BOOL_TEST)
 }
 
 func TestBoolCreate(t *testing.T) {
-	id, err := RESTBoolTest.Create(db, b(`
+	id, err := CRUDBoolTest.Create(db, b(`
 	{
 		"Bool": true
 	}
@@ -51,7 +50,7 @@ func TestBoolCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTBoolTest.Read(db, id)
+	x, err = CRUDBoolTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created booltest with id %s: %s", id, err)
@@ -69,14 +68,14 @@ func TestBoolCreate(t *testing.T) {
 }
 
 func TestBoolUpdate(t *testing.T) {
-	id, _ := RESTBoolTest.Create(db, b(`
+	id, _ := CRUDBoolTest.Create(db, b(`
 	{
 		"Bool": true
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTBoolTest.Update(db, id, b(`
+	err := CRUDBoolTest.Update(db, id, b(`
 	{
 		"Bool": false,
 		"BoolNull": true
@@ -88,7 +87,7 @@ func TestBoolUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTBoolTest.Read(db, id)
+	x, err = CRUDBoolTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created booltest with id %s: %s", id, err)

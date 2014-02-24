@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type IntTest struct {
 }
 
 var INT_TEST = fat.Proto(&IntTest{}).(*IntTest)
-var RESTIntTest *REST
+var CRUDIntTest *CRUD
 
 func init() {
 	MustRegisterTable("inttest", INT_TEST)
@@ -29,11 +29,11 @@ func init() {
 			intTestTable.Create()))
 	}
 
-	RESTIntTest = NewREST(INT_TEST)
+	CRUDIntTest = NewCRUD(INT_TEST)
 }
 
 func TestIntCreate(t *testing.T) {
-	id, err := RESTIntTest.Create(db, b(`
+	id, err := CRUDIntTest.Create(db, b(`
 	{
 		"Int": 2
 	}
@@ -51,7 +51,7 @@ func TestIntCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTIntTest.Read(db, id)
+	x, err = CRUDIntTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created inttest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestIntCreate(t *testing.T) {
 }
 
 func TestIntUpdate(t *testing.T) {
-	id, _ := RESTIntTest.Create(db, b(`
+	id, _ := CRUDIntTest.Create(db, b(`
 	{
 		"Int": 2
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTIntTest.Update(db, id, b(`
+	err := CRUDIntTest.Update(db, id, b(`
 	{
 		"Int": 3,
 		"IntNull": 4
@@ -88,7 +88,7 @@ func TestIntUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTIntTest.Read(db, id)
+	x, err = CRUDIntTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created inttest with id %s: %s", id, err)

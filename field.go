@@ -107,14 +107,14 @@ func (ø *Field) Value(val interface{}) (tv *TypedValue, err error) {
 			tv = &TypedValue{PgType: ø.Type}
 			return
 		} else {
-			err = fmt.Errorf("error when setting field %s to value %#v: Null is not allowed for this field\n", ø.Sql(), val)
+			err = nullNotAllowedError(ø, val)
 			return
 		}
 	}
 	tv = &TypedValue{PgType: ø.Type}
 	e := Convert(val, tv)
 	if e != nil {
-		err = fmt.Errorf("error when setting field %s to value %#v: %s\n", ø.Sql(), val, e.Error())
+		err = convertError(ø, val, e)
 	}
 	return
 }
@@ -135,6 +135,7 @@ func (ø *Field) Validate(value interface{}) (err error) {
 	for _, v := range ø.Validations {
 		err = v.Validate(value)
 		if err != nil {
+			err = fieldError(ø, err)
 			return
 		}
 	}

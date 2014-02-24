@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type MapTest struct {
 }
 
 var MAP_TEST = fat.Proto(&MapTest{}).(*MapTest)
-var RESTMapTest *REST
+var CRUDMapTest *CRUD
 
 func init() {
 	MustRegisterTable("maptest", MAP_TEST)
@@ -29,11 +29,11 @@ func init() {
 			mapTestTable.Create()))
 	}
 
-	RESTMapTest = NewREST(MAP_TEST)
+	CRUDMapTest = NewCRUD(MAP_TEST)
 }
 
 func TestMapCreate(t *testing.T) {
-	id, err := RESTMapTest.Create(db, b(`
+	id, err := CRUDMapTest.Create(db, b(`
 	{
 		"Map": {"a":"b"}
 	}
@@ -51,7 +51,7 @@ func TestMapCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTMapTest.Read(db, id)
+	x, err = CRUDMapTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created maptest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestMapCreate(t *testing.T) {
 }
 
 func TestMapUpdate(t *testing.T) {
-	id, _ := RESTMapTest.Create(db, b(`
+	id, _ := CRUDMapTest.Create(db, b(`
 	{
 		"Map": {"b":"c"}
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTMapTest.Update(db, id, b(`
+	err := CRUDMapTest.Update(db, id, b(`
 	{
 		"Map": {"d":"e"},
 		"MapNull": {"f":5}
@@ -88,7 +88,7 @@ func TestMapUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTMapTest.Read(db, id)
+	x, err = CRUDMapTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created maptest with id %s: %s", id, err)

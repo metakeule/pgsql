@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type FloatTest struct {
 }
 
 var FLOAT_TEST = fat.Proto(&FloatTest{}).(*FloatTest)
-var RESTFloatTest *REST
+var CRUDFloatTest *CRUD
 
 func init() {
 	MustRegisterTable("floattest", FLOAT_TEST)
@@ -29,11 +29,11 @@ func init() {
 			floatTestTable.Create()))
 	}
 
-	RESTFloatTest = NewREST(FLOAT_TEST)
+	CRUDFloatTest = NewCRUD(FLOAT_TEST)
 }
 
 func TestFloatCreate(t *testing.T) {
-	id, err := RESTFloatTest.Create(db, b(`
+	id, err := CRUDFloatTest.Create(db, b(`
 	{
 		"Float": 2.5
 	}
@@ -51,7 +51,7 @@ func TestFloatCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTFloatTest.Read(db, id)
+	x, err = CRUDFloatTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created floattest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestFloatCreate(t *testing.T) {
 }
 
 func TestFloatUpdate(t *testing.T) {
-	id, _ := RESTFloatTest.Create(db, b(`
+	id, _ := CRUDFloatTest.Create(db, b(`
 	{
 		"Float": 2.2
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTFloatTest.Update(db, id, b(`
+	err := CRUDFloatTest.Update(db, id, b(`
 	{
 		"Float": 6,
 		"FloatNull": 2.5
@@ -88,7 +88,7 @@ func TestFloatUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTFloatTest.Read(db, id)
+	x, err = CRUDFloatTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created floattest with id %s: %s", id, err)

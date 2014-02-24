@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type TimeTest struct {
 }
 
 var TIME_TEST = fat.Proto(&TimeTest{}).(*TimeTest)
-var RESTTimeTest *REST
+var CRUDTimeTest *CRUD
 
 func init() {
 	MustRegisterTable("timetest", TIME_TEST)
@@ -29,11 +29,11 @@ func init() {
 			timeTestTable.Create()))
 	}
 
-	RESTTimeTest = NewREST(TIME_TEST)
+	CRUDTimeTest = NewCRUD(TIME_TEST)
 }
 
 func TestTimeCreate(t *testing.T) {
-	id, err := RESTTimeTest.Create(db, b(`
+	id, err := CRUDTimeTest.Create(db, b(`
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
@@ -51,7 +51,7 @@ func TestTimeCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTTimeTest.Read(db, id)
+	x, err = CRUDTimeTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created timetest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestTimeCreate(t *testing.T) {
 }
 
 func TestTimeUpdate(t *testing.T) {
-	id, _ := RESTTimeTest.Create(db, b(`
+	id, _ := CRUDTimeTest.Create(db, b(`
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTTimeTest.Update(db, id, b(`
+	err := CRUDTimeTest.Update(db, id, b(`
 	{
 		"Time": "2011-12-13T23:04:45Z",
 		"TimeNull": "2011-12-13T23:04:45+03:00"
@@ -88,7 +88,7 @@ func TestTimeUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTTimeTest.Read(db, id)
+	x, err = CRUDTimeTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created timetest with id %s: %s", id, err)

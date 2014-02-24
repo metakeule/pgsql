@@ -1,4 +1,4 @@
-package fat
+package rest
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ var FieldRegistry = &fieldRegistry{
 	fields:  map[string]*Field{},
 }
 
-var varcharReg = regexp.MustCompile(`varchar\(([1-2]?[0-9]?[1-9])\)`)
+var varcharReg = regexp.MustCompile(`varchar\(([1-2]?[0-9]?[0-9])\)`)
 
 /*
 pgsql looks if type tag matches
@@ -277,6 +277,7 @@ func TableOf(fatstruct interface{}) *Table {
 	return TableRegistry.Table(reflect.TypeOf(fatstruct).String())
 }
 
+/*
 type FatScanner struct {
 	*fat.Field
 }
@@ -284,3 +285,4 @@ type FatScanner struct {
 func (ft *FatScanner) Scan(value interface{}) error {
 	return ft.Field.Scan(fmt.Sprintf("%v", value))
 }
+*/

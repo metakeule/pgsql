@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	// "github.com/metakeule/fastreplace"
-	"github.com/metakeule/templ"
 	"strings"
+	"github.com/metakeule/templ"
 )
 
 type Limit int
@@ -490,7 +490,7 @@ func (ø *InsertQuery) fieldsAndValues() (fields string, values string, err erro
 			tv := TypedValue{PgType: k.Type}
 			e := Convert(v, &tv)
 			if e != nil {
-				err = e
+				err = convertError(k, v, e)
 				return
 			}
 			sql := tv.Sql()
@@ -522,7 +522,7 @@ func (ø *InsertQuery) fieldsAndValuesInsert() (fields string, values string, er
 					ro = append(ro, "null")
 					continue
 				} else {
-					err = fmt.Errorf("null not allowed for field %s", k.Name)
+					err = nullNotAllowedError(k, v)
 					return
 				}
 
@@ -532,7 +532,7 @@ func (ø *InsertQuery) fieldsAndValuesInsert() (fields string, values string, er
 				tv = &TypedValue{PgType: k.Type}
 				e := Convert(v, tv)
 				if e != nil {
-					err = e
+					err = convertError(k, v, e)
 					return
 				}
 			}
@@ -549,12 +549,24 @@ func (ø *InsertQuery) fieldsAndValuesInsert() (fields string, values string, er
 }
 
 func (ø *InsertQuery) Sql() (s SqlType) {
+	var err error
+	s, err = ø.SqlError()
+
+	if err != nil {
+		panic(err.Error())
+	}
+	return s
+}
+
+func (ø *InsertQuery) SqlError() (s SqlType, e error) {
 	t := ø.Table
 	//currval := Sql(fmt.Sprintf("SELECT\n\tcurrval('%s')", t.PrimaryKeySeq))
 	//SELECT currval('\"#{@table.schema.name}\".\"#{@table.primary_key_seq}\"') as id;"
 	fi, va, err := ø.fieldsAndValuesInsert()
 	if err != nil {
-		panic(err)
+		//panic(err)
+		e = err
+		return
 	}
 	//s = Sql(fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s;\n%s", t.Sql(), fi, va, (&AsStruct{currval, "id"}).Sql()))
 	stmt := fmt.Sprintf("INSERT INTO \n\t%s (%s) \nVALUES \n\t%s", t.Sql(), fi, va)
@@ -620,7 +632,7 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 				tv = &TypedValue{PgType: k.Type}
 				e := Convert(v, tv)
 				if e != nil {
-					err = e
+					err = convertError(k, v, e)
 					return
 				}
 			}
@@ -638,10 +650,22 @@ func (ø *UpdateQuery) setString() (set string, err error) {
 }
 
 func (ø *UpdateQuery) Sql() (s SqlType) {
+	var err error
+	s, err = ø.SqlError()
+
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func (ø *UpdateQuery) SqlError() (s SqlType, e error) {
 	t := ø.Table
 	sets, err := ø.setString()
 	if err != nil {
-		panic(err)
+		e = err
+		return
+		// panic(err)
 	}
 	s = Sql(
 		fmt.Sprintf(

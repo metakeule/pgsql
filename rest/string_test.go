@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-on/fat"
 	// . "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"testing"
 )
 
@@ -15,7 +15,7 @@ type StringTest struct {
 }
 
 var STRING_TEST = fat.Proto(&StringTest{}).(*StringTest)
-var RESTStringTest *REST
+var CRUDStringTest *CRUD
 
 func init() {
 	MustRegisterTable("stringtest", STRING_TEST)
@@ -29,11 +29,11 @@ func init() {
 			stringTestTable.Create()))
 	}
 
-	RESTStringTest = NewREST(STRING_TEST)
+	CRUDStringTest = NewCRUD(STRING_TEST)
 }
 
 func TestStringCreate(t *testing.T) {
-	id, err := RESTStringTest.Create(db, b(`
+	id, err := CRUDStringTest.Create(db, b(`
 	{
 		"String": "hello"
 	}
@@ -51,7 +51,7 @@ func TestStringCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = RESTStringTest.Read(db, id)
+	x, err = CRUDStringTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringtest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestStringCreate(t *testing.T) {
 }
 
 func TestStringUpdate(t *testing.T) {
-	id, _ := RESTStringTest.Create(db, b(`
+	id, _ := CRUDStringTest.Create(db, b(`
 	{
 		"String": "hi"
 	}
 	`))
 
 	var x map[string]interface{}
-	err := RESTStringTest.Update(db, id, b(`
+	err := CRUDStringTest.Update(db, id, b(`
 	{
 		"String": "hello",
 		"StringNull": "world"
@@ -88,7 +88,7 @@ func TestStringUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = RESTStringTest.Read(db, id)
+	x, err = CRUDStringTest.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringtest with id %s: %s", id, err)

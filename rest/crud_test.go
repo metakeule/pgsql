@@ -8,12 +8,12 @@ import (
 	"github.com/go-on/fat"
 	"github.com/metakeule/dbwrap"
 	. "github.com/metakeule/pgsql"
-	. "github.com/metakeule/pgsql/fat"
+
 	"strings"
 	// "net/url"
 	//"fmt"
-	"github.com/lib/pq"
 	"testing"
+	"github.com/lib/pq"
 )
 
 type testdrv struct {
@@ -103,7 +103,7 @@ type Company struct {
 }
 
 var COMPANY = fat.Proto(&Company{}).(*Company)
-var RESTCompany *REST
+var CRUDCompany *CRUD
 var _ = strings.Contains
 
 func makeDB() *sql.DB {
@@ -143,7 +143,7 @@ func init() {
 		panic(fmt.Sprintf("Can't create table company: \nError: %s\nSql: %s\n", e.Error(), companyTable.Create()))
 	}
 
-	RESTCompany = NewREST(COMPANY)
+	CRUDCompany = NewCRUD(COMPANY)
 
 }
 
@@ -159,9 +159,9 @@ func parseQuery(q string) url.Values {
 
 func b(in string) []byte { return []byte(in) }
 
-func TestRESTCreate(t *testing.T) {
-	//id, err := RESTCompany.Create(db, parseQuery(`Name=testcreate&Age=42&UpdatedAt=2013-12-12 02:10:02`))
-	id, err := RESTCompany.Create(db, b(`
+func TestCRUDCreate(t *testing.T) {
+	//id, err := CRUDCompany.Create(db, parseQuery(`Name=testcreate&Age=42&UpdatedAt=2013-12-12 02:10:02`))
+	id, err := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testcreate",
 		"Age": 42,
@@ -181,7 +181,7 @@ func TestRESTCreate(t *testing.T) {
 
 	var comp map[string]interface{}
 
-	comp, err = RESTCompany.Read(db, id)
+	comp, err = CRUDCompany.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created company with id %s: %s", id, err)
@@ -209,9 +209,9 @@ func TestRESTCreate(t *testing.T) {
 	}
 }
 
-func TestRESTUpdate(t *testing.T) {
-	//id, _ := RESTCompany.Create(db, parseQuery("Name=testupdate&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id, _ := RESTCompany.Create(db, b(`
+func TestCRUDUpdate(t *testing.T) {
+	//id, _ := CRUDCompany.Create(db, parseQuery("Name=testupdate&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id, _ := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testupdate",
 		"Age": 42,
@@ -222,11 +222,11 @@ func TestRESTUpdate(t *testing.T) {
 	var comp map[string]interface{}
 	//	fmt.Printf("uuid: %#v\n", id)
 
-	//	err := RESTCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-01 00:00:02"))
+	//	err := CRUDCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-01 00:00:02"))
 
-	//err := RESTCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]"))
+	//err := CRUDCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]"))
 	/*
-		err := RESTCompany.Update(db, id, b(`
+		err := CRUDCompany.Update(db, id, b(`
 		{
 			"Name": "testupdatechanged",
 			"Age": 43,
@@ -236,7 +236,7 @@ func TestRESTUpdate(t *testing.T) {
 		`))
 	*/
 
-	err := RESTCompany.Update(db, id, b(`
+	err := CRUDCompany.Update(db, id, b(`
 	{
 		"Name": "testupdatechanged",
 		"Age": 43
@@ -248,7 +248,7 @@ func TestRESTUpdate(t *testing.T) {
 		return
 	}
 
-	comp, err = RESTCompany.Read(db, id)
+	comp, err = CRUDCompany.Read(db, id)
 
 	if err != nil {
 		t.Errorf("can't get created company with id %s: %s", id, err)
@@ -279,22 +279,22 @@ func TestRESTUpdate(t *testing.T) {
 	*/
 }
 
-func TestRESTDelete(t *testing.T) {
-	//id, _ := RESTCompany.Create(db, parseQuery("Name=testdelete&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id, _ := RESTCompany.Create(db, b(`
+func TestCRUDDelete(t *testing.T) {
+	//id, _ := CRUDCompany.Create(db, parseQuery("Name=testdelete&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id, _ := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testdelete",
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
 	`))
-	err := RESTCompany.Delete(db, id)
+	err := CRUDCompany.Delete(db, id)
 	if err != nil {
 		t.Errorf("can't delete company with id %s: %s", id, err)
 		return
 	}
 
-	_, err = RESTCompany.Read(db, id)
+	_, err = CRUDCompany.Read(db, id)
 
 	if err == nil {
 		t.Errorf("can get deleted company with id %s, but should not", id)
@@ -302,27 +302,27 @@ func TestRESTDelete(t *testing.T) {
 	}
 }
 
-func TestRESTList(t *testing.T) {
+func TestCRUDList(t *testing.T) {
 	db.Exec("delete from company")
-	//	id1, _ := RESTCompany.Create(db, parseQuery("Name=testlist1&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id1, _ := RESTCompany.Create(db, b(`
+	//	id1, _ := CRUDCompany.Create(db, parseQuery("Name=testlist1&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id1, _ := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testlist1",
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
 	`))
-	//	id2, _ := RESTCompany.Create(db, parseQuery("Name=testlist2&Age=43&UpdatedAt=2013-01-30 02:10:02"))
-	//id2, _ := RESTCompany.Create(db, parseQuery("Name=testlist2&Age=43"))
-	id2, _ := RESTCompany.Create(db, b(`
+	//	id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43&UpdatedAt=2013-01-30 02:10:02"))
+	//id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43"))
+	id2, _ := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testlist2",
 		"Age": 43
 	}
 	`))
 
-	//RESTCompany.Update(db, id1, parseQuery("Name=testlist1&Age=42&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-03 02:10:02"))
-	// RESTCompany.Update(db, id1, b(`
+	//CRUDCompany.Update(db, id1, parseQuery("Name=testlist1&Age=42&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-03 02:10:02"))
+	// CRUDCompany.Update(db, id1, b(`
 	// {
 	// 	"Name": "testlist1",
 	// 	"Age": 42,
@@ -332,7 +332,7 @@ func TestRESTList(t *testing.T) {
 	// }
 	// `))
 
-	RESTCompany.Update(db, id1, b(`
+	CRUDCompany.Update(db, id1, b(`
 	{
 		"Name": "testlist1",
 		"Age": 42,
@@ -340,7 +340,7 @@ func TestRESTList(t *testing.T) {
 	}
 	`))
 
-	//RESTCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
+	//CRUDCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
 
 	companyNameField := FieldRegistry.Field("*rest.Company", "Name")
 
@@ -348,8 +348,8 @@ func TestRESTList(t *testing.T) {
 		panic("can't find field for COMPANY.Name")
 	}
 
-	comps, err := RESTCompany.List(db, 10, OrderBy(companyNameField, ASC))
-	// comps, err := RESTCompany.List(db, 10, OrderBy(companyNameField, ASC))
+	total, comps, err := CRUDCompany.List(db, 10, ASC, companyNameField, 0)
+	// comps, err := CRUDCompany.List(db, 10, OrderBy(companyNameField, ASC))
 
 	if err != nil {
 		t.Errorf("can't list created company with id1 %s and id2 %s: %s", id1, id2, err)
@@ -361,6 +361,10 @@ func TestRESTList(t *testing.T) {
 
 	if len(comps) != 2 {
 		t.Errorf("results are not 2 companies, but %d", len(comps))
+	}
+
+	if total != 2 {
+		t.Errorf("total results are not 2 companies, but %d", total)
 	}
 
 	/*
