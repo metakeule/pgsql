@@ -37,7 +37,7 @@ func TestMapCreate(t *testing.T) {
 	{
 		"Map": {"a":"b"}
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create MapTest: %s", err)
@@ -73,7 +73,7 @@ func TestMapUpdate(t *testing.T) {
 	{
 		"Map": {"b":"c"}
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDMapTest.Update(db, id, b(`
@@ -81,7 +81,7 @@ func TestMapUpdate(t *testing.T) {
 		"Map": {"d":"e"},
 		"MapNull": {"f":5}
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update maptest with id %s: %s", id, err)

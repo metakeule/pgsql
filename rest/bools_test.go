@@ -36,7 +36,7 @@ func TestBoolsCreate(t *testing.T) {
 	{
 		"Bools": [true,false]
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create BoolsTest: %s", err)
@@ -72,7 +72,7 @@ func TestBoolsUpdate(t *testing.T) {
 	{
 		"Bools": [true,false]
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDBoolsTest.Update(db, id, b(`
@@ -80,7 +80,7 @@ func TestBoolsUpdate(t *testing.T) {
 		"Bools": [false,true],
 		"BoolsNull": [true,true]
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update boolstest with id %s: %s", id, err)

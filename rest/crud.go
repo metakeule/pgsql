@@ -19,6 +19,7 @@ type CRUD struct {
 	table        *Table
 	prototype    interface{}
 	type_        reflect.Type
+	type_string  string
 	fields       map[string]map[string]bool
 	primaryKey   *Field
 	pKeyIsString bool
@@ -26,10 +27,11 @@ type CRUD struct {
 
 func NewCRUD(proto interface{}) (c *CRUD) {
 	c = &CRUD{
-		table:     TableOf(proto),
-		prototype: proto,
-		type_:     reflect.TypeOf(proto),
-		fields:    map[string]map[string]bool{},
+		table:       TableOf(proto),
+		prototype:   proto,
+		type_:       reflect.TypeOf(proto),
+		type_string: typestring(proto),
+		fields:      map[string]map[string]bool{},
 	}
 	err := c.scanFields()
 	if err != nil {
@@ -129,8 +131,10 @@ func (r *CRUD) newObject() interface{} {
 	return fat.New(r.prototype, reflect.New(r.type_.Elem()).Interface())
 }
 func (r *CRUD) newObjects(num int) []interface{} { return make([]interface{}, num) }
-func (r *CRUD) typeString() string               { return r.type_.String() }
-func (c *CRUD) field(fld string) *Field          { return FieldRegistry.Field(c.typeString(), fld) }
+func (r *CRUD) typeString() string {
+	return r.type_string
+}
+func (c *CRUD) field(fld string) *Field { return FieldRegistry.Field(c.typeString(), fld) }
 
 var fatField *fat.Field
 var fatFieldNil = reflect.ValueOf(fatField)

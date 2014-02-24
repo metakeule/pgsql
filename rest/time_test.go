@@ -37,7 +37,7 @@ func TestTimeCreate(t *testing.T) {
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create TimeTest: %s", err)
@@ -73,7 +73,7 @@ func TestTimeUpdate(t *testing.T) {
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDTimeTest.Update(db, id, b(`
@@ -81,7 +81,7 @@ func TestTimeUpdate(t *testing.T) {
 		"Time": "2011-12-13T23:04:45Z",
 		"TimeNull": "2011-12-13T23:04:45+03:00"
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update timetest with id %s: %s", id, err)

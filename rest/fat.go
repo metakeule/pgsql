@@ -2,19 +2,26 @@ package rest
 
 import (
 	"fmt"
-	"github.com/go-on/fat"
-	mt "github.com/go-on/meta"
-	. "github.com/metakeule/pgsql"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/go-on/fat"
+	mt "github.com/go-on/meta"
+	. "github.com/metakeule/pgsql"
 )
 
 type tableRegistry struct {
 	*sync.RWMutex
 	tables map[string]*Table
+}
+
+func typestring(østruct interface{}) string {
+	// fmt.Printf("typestring for %T\n", østruct)
+	ty := reflect.TypeOf(østruct).Elem()
+	return "*" + ty.PkgPath() + "." + ty.Name()
 }
 
 func (tr *tableRegistry) AddTable(name string, t *Table) {
@@ -43,15 +50,20 @@ type fieldRegistry struct {
 func (fr *fieldRegistry) AddField(tablename, fieldname string, f *Field) {
 	fr.Lock()
 	defer fr.Unlock()
-	//	fmt.Printf("registering %s.%s\n", tablename, fieldname)
+	// fmt.Printf("registering %s/%s\n", tablename, fieldname)
 	fr.fields[tablename+"."+fieldname] = f
 }
 
 func (fr *fieldRegistry) Field(tablename, fieldname string) (f *Field) {
 	fr.RLock()
 	defer fr.RUnlock()
-	//	fmt.Printf("looking for %s\n", tablename+"."+fieldname)
+	// fmt.Printf("looking for %s\n", tablename+"/"+fieldname)
 	f = fr.fields[tablename+"."+fieldname]
+	/*
+		if f == nil {
+			panic("not found")
+		}
+	*/
 	return
 }
 
@@ -110,6 +122,8 @@ func RegisterTable(name string, ptrToFatStru interface{}) error {
 	if val.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
 	}
+
+	valType := typestring(ptrToFatStru)
 
 	stru, err := mt.StructByValue(val)
 	if err != nil {
@@ -254,10 +268,14 @@ func RegisterTable(name string, ptrToFatStru interface{}) error {
 		if isPkey {
 			table.PrimaryKey = append(table.PrimaryKey, f)
 		}
-		FieldRegistry.AddField(val.Type().String(), fld.Type.Name, f)
+
+		//fmt.Printf("adding field %#v, %#v, %s, %s\n", val.Type().String(), val.Type().Name(), fld.Type.Name, f.Name)
+		//FieldRegistry.AddField(val.Type().String(), fld.Type.Name, f)
+		FieldRegistry.AddField(valType, fld.Type.Name, f)
 		//}
 	}
-	TableRegistry.AddTable(val.Type().String(), table)
+	//	TableRegistry.AddTable(val.Type().String(), table)
+	TableRegistry.AddTable(valType, table)
 	stru.Each(fn)
 	return nil
 }
@@ -274,7 +292,8 @@ func FieldOf(ff *fat.Field) *Field {
 }
 
 func TableOf(fatstruct interface{}) *Table {
-	return TableRegistry.Table(reflect.TypeOf(fatstruct).String())
+	return TableRegistry.Table(typestring(fatstruct))
+	//return TableRegistry.Table(reflect.TypeOf(fatstruct).String())
 }
 
 /*

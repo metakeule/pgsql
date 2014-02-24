@@ -99,7 +99,7 @@ type Company struct {
 	Id        *fat.Field `type:"string uuid"        db:"id UUIDGEN PKEY" rest:" R DL"`
 	Name      *fat.Field `type:"string varchar(66)" db:"name"            rest:"CRU L"`
 	Age       *fat.Field `type:"int"                db:"age NULL"        rest:"CRU L"`
-	UpdatedAt *fat.Field `type:"time timestamp"     db:"updated_at"      rest:"CRU L"`
+	UpdatedAt *fat.Field `type:"time timestamp"     db:"updated_at NULL"      rest:"CRU L"`
 }
 
 var COMPANY = fat.Proto(&Company{}).(*Company)
@@ -167,7 +167,7 @@ func TestCRUDCreate(t *testing.T) {
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
   }
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create company: %s", err)
@@ -217,7 +217,7 @@ func TestCRUDUpdate(t *testing.T) {
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
-	`))
+	`), false, "")
 
 	var comp map[string]interface{}
 	//	fmt.Printf("uuid: %#v\n", id)
@@ -241,7 +241,7 @@ func TestCRUDUpdate(t *testing.T) {
 		"Name": "testupdatechanged",
 		"Age": 43
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update company with id %s: %s", id, err)
@@ -287,7 +287,7 @@ func TestCRUDDelete(t *testing.T) {
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
-	`))
+	`), false, "")
 	err := CRUDCompany.Delete(db, id)
 	if err != nil {
 		t.Errorf("can't delete company with id %s: %s", id, err)
@@ -305,21 +305,29 @@ func TestCRUDDelete(t *testing.T) {
 func TestCRUDList(t *testing.T) {
 	db.Exec("delete from company")
 	//	id1, _ := CRUDCompany.Create(db, parseQuery("Name=testlist1&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id1, _ := CRUDCompany.Create(db, b(`
+	id1, err := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testlist1",
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
-	`))
+	`), false, "")
+
+	if err != nil {
+		panic(err.Error())
+	}
 	//	id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43&UpdatedAt=2013-01-30 02:10:02"))
 	//id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43"))
-	id2, _ := CRUDCompany.Create(db, b(`
+	id2, err2 := CRUDCompany.Create(db, b(`
 	{
 		"Name": "testlist2",
 		"Age": 43
 	}
-	`))
+	`), false, "")
+
+	if err2 != nil {
+		panic(err2.Error())
+	}
 
 	//CRUDCompany.Update(db, id1, parseQuery("Name=testlist1&Age=42&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-03 02:10:02"))
 	// CRUDCompany.Update(db, id1, b(`
@@ -338,11 +346,11 @@ func TestCRUDList(t *testing.T) {
 		"Age": 42,
 		"UpdatedAt": "2014-01-03T02:10:02Z"
 	}
-	`))
+	`), false, "")
 
 	//CRUDCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
 
-	companyNameField := FieldRegistry.Field("*rest.Company", "Name")
+	companyNameField := FieldRegistry.Field("*github.com/metakeule/pgsql/rest.Company", "Name")
 
 	if companyNameField == nil {
 		panic("can't find field for COMPANY.Name")

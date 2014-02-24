@@ -37,7 +37,7 @@ func TestStringCreate(t *testing.T) {
 	{
 		"String": "hello"
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create StringTest: %s", err)
@@ -73,7 +73,7 @@ func TestStringUpdate(t *testing.T) {
 	{
 		"String": "hi"
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDStringTest.Update(db, id, b(`
@@ -81,7 +81,7 @@ func TestStringUpdate(t *testing.T) {
 		"String": "hello",
 		"StringNull": "world"
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update stringtest with id %s: %s", id, err)

@@ -37,7 +37,7 @@ func TestFloatsCreate(t *testing.T) {
 	{
 		"Floats": [2.5,6]
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create FloatsTest: %s", err)
@@ -73,7 +73,7 @@ func TestFloatsUpdate(t *testing.T) {
 	{
 		"Floats": [2.2,2.5]
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDFloatsTest.Update(db, id, b(`
@@ -81,7 +81,7 @@ func TestFloatsUpdate(t *testing.T) {
 		"Floats": [2.5,6],
 		"FloatsNull": [2.5,2.2]
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update floatstest with id %s: %s", id, err)

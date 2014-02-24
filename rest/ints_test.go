@@ -37,7 +37,7 @@ func TestIntsCreate(t *testing.T) {
 	{
 		"Ints": [2,3]
 	}
- 	`))
+ 	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't create IntsTest: %s", err)
@@ -73,7 +73,7 @@ func TestIntsUpdate(t *testing.T) {
 	{
 		"Ints": [1,2]
 	}
-	`))
+	`), false, "")
 
 	var x map[string]interface{}
 	err := CRUDIntsTest.Update(db, id, b(`
@@ -81,7 +81,7 @@ func TestIntsUpdate(t *testing.T) {
 		"Ints": [4,5],
 		"IntsNull": [3,5]
 	}
-	`))
+	`), false, "")
 
 	if err != nil {
 		t.Errorf("can't update intstest with id %s: %s", id, err)
