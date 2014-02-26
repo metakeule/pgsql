@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"github.com/go-on/fat"
+	"github.com/metakeule/pgsql/pgsqlfat"
 	// . "github.com/metakeule/pgsql"
 
 	"testing"
@@ -18,11 +19,11 @@ var STRINGS_TEST = fat.Proto(&StringsTest{}).(*StringsTest)
 var CRUDStringsTest *CRUD
 
 func init() {
-	MustRegisterTable("stringstest", STRINGS_TEST)
+	pgsqlfat.MustRegisterTable("stringstest", STRINGS_TEST)
 
 	db.Exec("DROP TABLE stringstest")
 
-	stringsTestTable := TableOf(STRINGS_TEST)
+	stringsTestTable := pgsqlfat.TableOf(STRINGS_TEST)
 	_, e := db.Exec(stringsTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table stringstest: \nError: %s\nSql: %s\n", e.Error(),
@@ -35,7 +36,7 @@ func init() {
 func TestStringsCreate(t *testing.T) {
 	id, err := CRUDStringsTest.Create(db, b(`
 	{
-		"Strings": ["a","b"]
+		"Strings": ["a u","b"]
 	}
  	`), false, "")
 
@@ -58,8 +59,8 @@ func TestStringsCreate(t *testing.T) {
 		return
 	}
 
-	if jsonify(x["Strings"]) != `["a","b"]` {
-		t.Errorf("stringstest Strings is not [\"a\",\"b\"], but %#v", jsonify(x["Strings"]))
+	if jsonify(x["Strings"]) != `["a u","b"]` {
+		t.Errorf("stringstest Strings is not [\"a u\",\"b\"], but %#v", jsonify(x["Strings"]))
 	}
 
 	if x["StringsNull"] != nil {
@@ -79,7 +80,7 @@ func TestStringsUpdate(t *testing.T) {
 	err := CRUDStringsTest.Update(db, id, b(`
 	{
 		"Strings": ["d","g"],
-		"StringsNull": ["a","x"]
+		"StringsNull": ["a ","x"]
 	}
 	`), false, "")
 

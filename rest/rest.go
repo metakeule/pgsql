@@ -26,6 +26,8 @@ const (
 	LIST
 )
 
+var ALL = CREATE | READ | UPDATE | DELETE | LIST
+
 func (r *rest) Mount(proto interface{}, mountPoint string, actions action, options *options) (routes map[action]*router.Route) {
 	mounter := NewCRUD(proto).Mount(r.db, r.Router, mountPoint, options)
 

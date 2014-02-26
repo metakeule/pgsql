@@ -9,6 +9,7 @@ import (
 	"github.com/go-on/router"
 	"github.com/metakeule/fmtdate"
 	. "github.com/metakeule/pgsql"
+	"github.com/metakeule/pgsql/pgsqlfat"
 	// "net/url"
 	"reflect"
 	"strings"
@@ -27,10 +28,10 @@ type CRUD struct {
 
 func NewCRUD(proto interface{}) (c *CRUD) {
 	c = &CRUD{
-		table:       TableOf(proto),
+		table:       pgsqlfat.TableOf(proto),
 		prototype:   proto,
 		type_:       reflect.TypeOf(proto),
-		type_string: typestring(proto),
+		type_string: pgsqlfat.TypeString(proto),
 		fields:      map[string]map[string]bool{},
 	}
 	err := c.scanFields()
@@ -134,16 +135,19 @@ func (r *CRUD) newObjects(num int) []interface{} { return make([]interface{}, nu
 func (r *CRUD) typeString() string {
 	return r.type_string
 }
-func (c *CRUD) field(fld string) *Field { return FieldRegistry.Field(c.typeString(), fld) }
+func (c *CRUD) field(fld string) *Field { return pgsqlfat.FieldRegistry.Field(c.typeString(), fld) }
 
 var fatField *fat.Field
 var fatFieldNil = reflect.ValueOf(fatField)
 
-func trimCurly(in string) string {
+/*
+func pgsqlfat.TrimCurly(in string) string {
 	in = strings.Replace(in, "{", "", -1)
 	in = strings.Replace(in, "}", "", -1)
+	// in = strings.Trim(in, `"`)
 	return in
 }
+*/
 
 /*
 ScanFieldToStruct scans a field of the *Row from a database query into the given fatstruct and
@@ -162,19 +166,20 @@ func (c *CRUD) scanFieldToStruct(queryRow *Row, structField reflect.Value, dbFie
 		err = fatField.Set(t)
 	case IntsType:
 		err = fatField.ScanString("[" +
-			trimCurly(queryRow.GetString(dbField)) +
+			pgsqlfat.TrimCurly(queryRow.GetString(dbField)) +
 			"]")
 	case StringsType:
-		err = fatField.Set(
-			fat.Strings(
-				strings.Split(
-					trimCurly(queryRow.GetString(dbField)),
-					",")...))
+		ss := []string{}
+		s_s := strings.Split(pgsqlfat.TrimCurly(queryRow.GetString(dbField)), ",")
+		for _, sss := range s_s {
+			ss = append(ss, strings.Trim(sss, `" `))
+		}
+		err = fatField.Set(fat.Strings(ss...))
 	case JsonType:
 		err = fatField.ScanString(queryRow.GetString(dbField))
 	case BoolsType:
 		vls := strings.Split(
-			trimCurly(queryRow.GetString(dbField)),
+			pgsqlfat.TrimCurly(queryRow.GetString(dbField)),
 			",")
 		bs := make([]bool, len(vls))
 		for j, bstri := range vls {
@@ -190,13 +195,13 @@ func (c *CRUD) scanFieldToStruct(queryRow *Row, structField reflect.Value, dbFie
 		err = fatField.Set(fat.Bools(bs...))
 	case FloatsType:
 		err = fatField.ScanString("[" +
-			trimCurly(queryRow.GetString(dbField)) +
+			pgsqlfat.TrimCurly(queryRow.GetString(dbField)) +
 			"]")
 	case TimeStampsTZType:
 		//var t []time.Time
 		var ts string
 		queryRow.Get(dbField, &ts)
-		vls := strings.Split(trimCurly(ts), ",")
+		vls := strings.Split(pgsqlfat.TrimCurly(ts), ",")
 		tms := make([]time.Time, len(vls))
 		for j, tmsStri := range vls {
 			tm, e := fmtdate.Parse("YYYY-MM-DD hh:mm:ss+00", strings.Trim(tmsStri, `"`))
@@ -209,7 +214,7 @@ func (c *CRUD) scanFieldToStruct(queryRow *Row, structField reflect.Value, dbFie
 		err = fatField.Set(fat.Times(tms...))
 		/*
 			err = fatField.ScanString("[" +
-				trimCurly(queryRow.GetString(dbField)) +
+				pgsqlfat.TrimCurly(queryRow.GetString(dbField)) +
 				"]")
 		*/
 	default:

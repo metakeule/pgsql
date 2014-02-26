@@ -87,7 +87,7 @@ func (r *CRUD) Create(db DB, json_ []byte, validateOnly bool, singleField string
 	if validateOnly {
 		return
 	}
-	err = row.Save()
+	err = row.Insert()
 	id = row.GetString(r.primaryKey)
 	return
 }
@@ -253,7 +253,7 @@ func (r *CRUD) Update(db DB, id string, json_ []byte, validateOnly bool, singleF
 	if validateOnly {
 		return
 	}
-	return row.Save()
+	return row.Update()
 }
 
 func (r *CRUD) Delete(db DB, id string) error {

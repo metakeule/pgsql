@@ -8,6 +8,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"github.com/metakeule/pgsql/pgsqlfat"
 
 	"github.com/go-on/fat"
 	"github.com/go-on/router"
@@ -275,7 +276,7 @@ func (m *Mounter) serveList(wr http.ResponseWriter, rq *http.Request) {
 
 		f := m.CRUD.primaryKey
 		if sortBy != "" {
-			f = FieldRegistry.Field(m.CRUD.typeString(), sortBy)
+			f = pgsqlfat.FieldRegistry.Field(m.CRUD.typeString(), sortBy)
 		}
 		total, objs, err = m.CRUD.List(m.db, reqLimit, dir, f, start)
 	}

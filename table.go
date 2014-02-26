@@ -246,6 +246,20 @@ func (ø *Table) Drop() SqlType {
 	return Sql("DROP TABLE " + string(ø.Sql()))
 }
 
+func (ø *Table) DropCascade() SqlType {
+	return Sql("DROP TABLE " + string(ø.Sql()) + " CASCADE")
+}
+
+func (ø *Table) AddForeignKeyConstraint(field *Field, onDeleteCascade bool) {
+	fk := &foreignKey{}
+	fk.Field = field
+	fk.Reference = field.ForeignKey
+	if onDeleteCascade {
+		fk.OnDeleteCascade = true
+	}
+	ø.Constraints = append(ø.Constraints, fk)
+}
+
 func (ø *Table) AddField(fields ...*Field) {
 	for _, f := range fields {
 		ø.Fields = append(ø.Fields, f)

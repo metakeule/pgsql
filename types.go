@@ -2,12 +2,12 @@ package pgsql
 
 import (
 	"fmt"
-	"github.com/metakeule/fmtdate"
 	"strconv"
 	"time"
+	"github.com/metakeule/fmtdate"
 	// 	"encoding/xml"
-	"github.com/metakeule/typeconverter"
 	"strings"
+	"github.com/metakeule/typeconverter"
 )
 
 type SqlType string
@@ -347,6 +347,7 @@ func (ø *pgInterpretedString) Strings() (ses []string) {
 	inner := str[1 : len(str)-1]
 	a := strings.Split(inner, ",")
 	for _, s := range a {
+		// fmt.Printf("s: %#v\n", s)
 		s_tr := strings.Trim(s, `"`)
 		ses = append(ses, s_tr)
 	}
@@ -401,7 +402,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø = typeconverter.New()
 
 	inSwitch := func(from interface{}, to interface{}) (err error) {
-		// fmt.Printf("-- convert %v (%T)--\n", from, from)
+		// fmt.Printf("-- convert %v (%T)-- to %T\n", from, from, to)
 		switch t := from.(type) {
 		//case Placeholder:
 		//	err = ø.Output.Dispatch(to, &TypedValue{TextType, t, true})
@@ -427,6 +428,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case []int:
 			err = ø.Output.Dispatch(to, &TypedValue{IntsType, intsStringer(t), false})
 		case []string:
+			// fmt.Printf("strings: %#v\n", t)
 			err = ø.Output.Dispatch(to, &TypedValue{StringsType, stringsStringer(t), false})
 		case []bool:
 			err = ø.Output.Dispatch(to, &TypedValue{BoolsType, boolsStringer(t), false})
@@ -494,15 +496,18 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 	ø.Input.SetHandler(timesInstance, inSwitch)
 
 	outSwitch := func(out interface{}, in interface{}) (err error) {
+		// fmt.Printf("in: %#v (%T) out: %#v (%T)\n", in, in, out, out)
 		switch t := out.(type) {
 		case *TypedValue:
 			iTyped := in.(Valuer).TypedValue()
 			oTyped := out.(*TypedValue)
-			//fmt.Printf("in: %#v (%#v) out: %#v (%#v)\n", iTyped, iTyped.Type(), oTyped, oTyped.Type())
+			// fmt.Printf("in: %#v (%#v) out: %#v (%#v)\n", iTyped, iTyped.String(), oTyped, oTyped.String())
 			if int(oTyped.Type()) == 0 {
 				*oTyped = *iTyped
 				return
 			}
+
+			// fmt.Printf("iTyped %#v oTyped %#v\n", iTyped.Type().String(), oTyped.Type().String())
 			if iTyped.Type() == oTyped.Type() {
 				*oTyped = *iTyped
 			} else {
@@ -530,6 +535,7 @@ func NewTypeConverter() (ø *typeconverter.BasicConverter) {
 		case *[]int:
 			*out.(*[]int) = in.(*TypedValue).Value.(Intser).Ints()
 		case *[]string:
+			// fmt.Printf("stringser %T\n", in.(*TypedValue).Value)
 			*out.(*[]string) = in.(*TypedValue).Value.(Stringser).Strings()
 		case *[]bool:
 			*out.(*[]bool) = in.(*TypedValue).Value.(Boolser).Bools()

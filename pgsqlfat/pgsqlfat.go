@@ -1,4 +1,4 @@
-package rest
+package pgsqlfat
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type tableRegistry struct {
 	tables map[string]*Table
 }
 
-func typestring(østruct interface{}) string {
+func TypeString(østruct interface{}) string {
 	// fmt.Printf("typestring for %T\n", østruct)
 	ty := reflect.TypeOf(østruct).Elem()
 	return "*" + ty.PkgPath() + "." + ty.Name()
@@ -113,21 +113,21 @@ func splitSpace(s string) []string {
 	return n
 }
 
-func RegisterTable(name string, ptrToFatStru interface{}) error {
+func RegisterTable(name string, ptrToFatStru interface{}) (*Table, error) {
 	val := reflect.ValueOf(ptrToFatStru)
 	if val.Kind() != reflect.Ptr {
-		return fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
+		return nil, fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
 	}
 
 	if val.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
+		return nil, fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
 	}
 
-	valType := typestring(ptrToFatStru)
+	valType := TypeString(ptrToFatStru)
 
 	stru, err := mt.StructByValue(val)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	table := NewTable(name)
@@ -262,9 +262,11 @@ func RegisterTable(name string, ptrToFatStru interface{}) error {
 			}
 		}
 		//}
-		if ff.Default() != nil {
-			f.Default = Sql(ff.Default().String())
-		}
+		/*
+			if ff.Default() != nil {
+				f.Default = Sql(ff.Default().String())
+			}
+		*/
 		if isPkey {
 			table.PrimaryKey = append(table.PrimaryKey, f)
 		}
@@ -277,14 +279,15 @@ func RegisterTable(name string, ptrToFatStru interface{}) error {
 	//	TableRegistry.AddTable(val.Type().String(), table)
 	TableRegistry.AddTable(valType, table)
 	stru.Each(fn)
-	return nil
+	return table, nil
 }
 
-func MustRegisterTable(name string, ptrToFatStru interface{}) {
-	err := RegisterTable(name, ptrToFatStru)
+func MustRegisterTable(name string, ptrToFatStru interface{}) *Table {
+	table, err := RegisterTable(name, ptrToFatStru)
 	if err != nil {
 		panic(err.Error())
 	}
+	return table
 }
 
 func FieldOf(ff *fat.Field) *Field {
@@ -292,7 +295,7 @@ func FieldOf(ff *fat.Field) *Field {
 }
 
 func TableOf(fatstruct interface{}) *Table {
-	return TableRegistry.Table(typestring(fatstruct))
+	return TableRegistry.Table(TypeString(fatstruct))
 	//return TableRegistry.Table(reflect.TypeOf(fatstruct).String())
 }
 

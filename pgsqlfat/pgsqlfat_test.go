@@ -1,4 +1,4 @@
-package rest
+package pgsqlfat
 
 import (
 	"testing"

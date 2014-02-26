@@ -8,6 +8,7 @@ import (
 	"github.com/go-on/fat"
 	"github.com/metakeule/dbwrap"
 	. "github.com/metakeule/pgsql"
+	"github.com/metakeule/pgsql/pgsqlfat"
 
 	"strings"
 	// "net/url"
@@ -133,11 +134,11 @@ var db = makeDB()
 
 func init() {
 	//db := makeDB()
-	MustRegisterTable("company", COMPANY)
+	pgsqlfat.MustRegisterTable("company", COMPANY)
 
 	db.Exec("DROP TABLE company")
 
-	companyTable := TableOf(COMPANY)
+	companyTable := pgsqlfat.TableOf(COMPANY)
 	_, e := db.Exec(companyTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table company: \nError: %s\nSql: %s\n", e.Error(), companyTable.Create()))
@@ -350,7 +351,7 @@ func TestCRUDList(t *testing.T) {
 
 	//CRUDCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
 
-	companyNameField := FieldRegistry.Field("*github.com/metakeule/pgsql/rest.Company", "Name")
+	companyNameField := pgsqlfat.FieldRegistry.Field("*github.com/metakeule/pgsql/rest.Company", "Name")
 
 	if companyNameField == nil {
 		panic("can't find field for COMPANY.Name")
