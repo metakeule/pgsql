@@ -8,6 +8,7 @@ import (
 	"github.com/go-on/fat"
 	"github.com/go-on/router"
 	"github.com/metakeule/pgsql"
+	"github.com/metakeule/pgsql/pgsqlfat"
 	"github.com/metakeule/pgsql/rest"
 )
 
@@ -98,8 +99,8 @@ var CORPORATION = fat.Proto(&Corporation{}).(*Corporation)
 func init() {
 	CORPORATION.Name.Validator = fat.Validaters(fat.StringMustNotBeEmpty)
 
-	rest.MustRegisterTable("person", PERSON)
-	rest.MustRegisterTable("corporation", CORPORATION)
+	pgsqlfat.MustRegisterTable("person", PERSON)
+	pgsqlfat.MustRegisterTable("corporation", CORPORATION)
 
 }
 
@@ -147,7 +148,7 @@ func main() {
 }
 
 func initCorporation() {
-	corporationTable := rest.TableOf(CORPORATION)
+	corporationTable := pgsqlfat.TableOf(CORPORATION)
 
 	_, e := DB.Exec(corporationTable.Create().String())
 	if e != nil {
@@ -157,7 +158,7 @@ func initCorporation() {
 
 	r := pgsql.NewRow(DB, corporationTable)
 	r.Debug = true
-	e = r.Set(rest.FieldOf(CORPORATION.Name), "Know")
+	e = r.Set(pgsqlfat.FieldOf(CORPORATION.Name), "Know")
 	if e != nil {
 		fmt.Printf("Error: %s\n", e.Error())
 		return
@@ -173,11 +174,11 @@ func initCorporation() {
 }
 
 func insertCompany() {
-	corporationTable := rest.TableOf(CORPORATION)
+	corporationTable := pgsqlfat.TableOf(CORPORATION)
 
 	r := pgsql.NewRow(DB, corporationTable)
 	r.Debug = true
-	e := r.Set(rest.FieldOf(CORPORATION.Name), "Stridor")
+	e := r.Set(pgsqlfat.FieldOf(CORPORATION.Name), "Stridor")
 	if e != nil {
 		fmt.Printf("Error: %s\n", e.Error())
 		return
@@ -190,7 +191,7 @@ func insertCompany() {
 		return
 	}
 
-	fmt.Printf("inserted corporation with id %s\n", r.GetString(rest.FieldOf(CORPORATION.Id)))
+	fmt.Printf("inserted corporation with id %s\n", r.GetString(pgsqlfat.FieldOf(CORPORATION.Id)))
 }
 
 func insertCompany2() {
