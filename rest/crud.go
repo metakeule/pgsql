@@ -24,11 +24,14 @@ type CRUD struct {
 	fields       map[string]map[string]bool
 	primaryKey   *Field
 	pKeyIsString bool
+	*pgsqlfat.Registry
 }
 
-func NewCRUD(proto interface{}) (c *CRUD) {
+func NewCRUD(registry *pgsqlfat.Registry, proto interface{}) (c *CRUD) {
 	c = &CRUD{
-		table:       pgsqlfat.TableOf(proto),
+		Registry: registry,
+		table:    registry.TableOf(proto),
+		// table:       table,
 		prototype:   proto,
 		type_:       reflect.TypeOf(proto),
 		type_string: pgsqlfat.TypeString(proto),
@@ -135,7 +138,7 @@ func (r *CRUD) newObjects(num int) []interface{} { return make([]interface{}, nu
 func (r *CRUD) typeString() string {
 	return r.type_string
 }
-func (c *CRUD) field(fld string) *Field { return pgsqlfat.FieldRegistry.Field(c.typeString(), fld) }
+func (c *CRUD) field(fld string) *Field { return c.Field(c.typeString(), fld) }
 
 var fatField *fat.Field
 var fatFieldNil = reflect.ValueOf(fatField)

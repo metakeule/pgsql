@@ -2,6 +2,7 @@ package rest
 
 import (
 	. "github.com/metakeule/pgsql"
+	"github.com/metakeule/pgsql/pgsqlfat"
 
 	"github.com/go-on/router"
 )
@@ -9,10 +10,11 @@ import (
 type rest struct {
 	db     DB
 	Router *router.Router
+	*pgsqlfat.Registry
 }
 
-func NewREST(db DB, rt *router.Router) *rest {
-	return &rest{db, rt}
+func NewREST(db DB, reg *pgsqlfat.Registry, rt *router.Router) *rest {
+	return &rest{db, rt, reg}
 }
 
 type action int
@@ -29,7 +31,7 @@ const (
 var ALL = CREATE | READ | UPDATE | DELETE | LIST
 
 func (r *rest) Mount(proto interface{}, mountPoint string, actions action, options *options) (routes map[action]*router.Route) {
-	mounter := NewCRUD(proto).Mount(r.db, r.Router, mountPoint, options)
+	mounter := NewCRUD(r.Registry, proto).Mount(r.db, r.Router, mountPoint, options)
 
 	routes = map[action]*router.Route{}
 

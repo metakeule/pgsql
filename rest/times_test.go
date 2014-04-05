@@ -3,7 +3,7 @@ package rest
 import (
 	"fmt"
 	"github.com/go-on/fat"
-	"github.com/metakeule/pgsql/pgsqlfat"
+
 	// . "github.com/metakeule/pgsql"
 
 	"testing"
@@ -19,18 +19,18 @@ var TIMES_TEST = fat.Proto(&TimesTest{}).(*TimesTest)
 var CRUDTimesTest *CRUD
 
 func init() {
-	pgsqlfat.MustRegisterTable("timestest", TIMES_TEST)
+	registry.MustRegisterTable("timestest", TIMES_TEST)
 
 	db.Exec("DROP TABLE timestest")
 
-	timesTestTable := pgsqlfat.TableOf(TIMES_TEST)
+	timesTestTable := registry.TableOf(TIMES_TEST)
 	_, e := db.Exec(timesTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table timestest: \nError: %s\nSql: %s\n", e.Error(),
 			timesTestTable.Create()))
 	}
 
-	CRUDTimesTest = NewCRUD(TIMES_TEST)
+	CRUDTimesTest = NewCRUD(registry, TIMES_TEST)
 }
 
 func TestTimesCreate(t *testing.T) {

@@ -3,7 +3,7 @@ package rest
 import (
 	"fmt"
 	"github.com/go-on/fat"
-	"github.com/metakeule/pgsql/pgsqlfat"
+
 	// . "github.com/metakeule/pgsql"
 
 	"testing"
@@ -19,18 +19,18 @@ var MAP_TEST = fat.Proto(&MapTest{}).(*MapTest)
 var CRUDMapTest *CRUD
 
 func init() {
-	pgsqlfat.MustRegisterTable("maptest", MAP_TEST)
+	registry.MustRegisterTable("maptest", MAP_TEST)
 
 	db.Exec("DROP TABLE maptest")
 
-	mapTestTable := pgsqlfat.TableOf(MAP_TEST)
+	mapTestTable := registry.TableOf(MAP_TEST)
 	_, e := db.Exec(mapTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table maptest: \nError: %s\nSql: %s\n", e.Error(),
 			mapTestTable.Create()))
 	}
 
-	CRUDMapTest = NewCRUD(MAP_TEST)
+	CRUDMapTest = NewCRUD(registry, MAP_TEST)
 }
 
 func TestMapCreate(t *testing.T) {
