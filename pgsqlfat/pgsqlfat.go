@@ -37,9 +37,23 @@ func (tr *tableRegistry) Table(name string) (t *Table) {
 	return
 }
 
-var TableRegistry = &tableRegistry{
-	RWMutex: &sync.RWMutex{},
-	tables:  map[string]*Table{},
+type Registry struct {
+	*tableRegistry
+	*fieldRegistry
+}
+
+func NewRegistries() *Registry {
+	tr := &tableRegistry{
+		RWMutex: &sync.RWMutex{},
+		tables:  map[string]*Table{},
+	}
+
+	fr := &fieldRegistry{
+		RWMutex: &sync.RWMutex{},
+		fields:  map[string]*Field{},
+	}
+
+	return &Registry{tr, fr}
 }
 
 type fieldRegistry struct {
@@ -65,11 +79,6 @@ func (fr *fieldRegistry) Field(tablename, fieldname string) (f *Field) {
 		}
 	*/
 	return
-}
-
-var FieldRegistry = &fieldRegistry{
-	RWMutex: &sync.RWMutex{},
-	fields:  map[string]*Field{},
 }
 
 var varcharReg = regexp.MustCompile(`varchar\(([1-2]?[0-9]?[0-9])\)`)
@@ -113,7 +122,7 @@ func splitSpace(s string) []string {
 	return n
 }
 
-func RegisterTable(name string, ptrToFatStru interface{}) (*Table, error) {
+func (r *Registry) RegisterTable(name string, ptrToFatStru interface{}) (*Table, error) {
 	val := reflect.ValueOf(ptrToFatStru)
 	if val.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("%T is no pointer to a struct", ptrToFatStru)
@@ -273,29 +282,29 @@ func RegisterTable(name string, ptrToFatStru interface{}) (*Table, error) {
 
 		//fmt.Printf("adding field %#v, %#v, %s, %s\n", val.Type().String(), val.Type().Name(), fld.Type.Name, f.Name)
 		//FieldRegistry.AddField(val.Type().String(), fld.Type.Name, f)
-		FieldRegistry.AddField(valType, fld.Type.Name, f)
+		r.AddField(valType, fld.Type.Name, f)
 		//}
 	}
 	//	TableRegistry.AddTable(val.Type().String(), table)
-	TableRegistry.AddTable(valType, table)
+	r.AddTable(valType, table)
 	stru.Each(fn)
 	return table, nil
 }
 
-func MustRegisterTable(name string, ptrToFatStru interface{}) *Table {
-	table, err := RegisterTable(name, ptrToFatStru)
+func (r *Registry) MustRegisterTable(name string, ptrToFatStru interface{}) *Table {
+	table, err := r.RegisterTable(name, ptrToFatStru)
 	if err != nil {
 		panic(err.Error())
 	}
 	return table
 }
 
-func FieldOf(ff *fat.Field) *Field {
-	return FieldRegistry.Field(ff.StructType(), ff.Name())
+func (r *Registry) FieldOf(ff *fat.Field) *Field {
+	return r.Field(ff.StructType(), ff.Name())
 }
 
-func TableOf(fatstruct interface{}) *Table {
-	return TableRegistry.Table(TypeString(fatstruct))
+func (r *Registry) TableOf(fatstruct interface{}) *Table {
+	return r.Table(TypeString(fatstruct))
 	//return TableRegistry.Table(reflect.TypeOf(fatstruct).String())
 }
 

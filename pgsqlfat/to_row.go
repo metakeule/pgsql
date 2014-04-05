@@ -15,7 +15,7 @@ import (
 	the row. øptrToFatStruct must be registered with RegisterTable
 	before using this function
 */
-func ToRow(øptrToFatStruct interface{}, row *Row) (err error) {
+func (r *Registry) ToRow(øptrToFatStruct interface{}, row *Row) (err error) {
 	var stru *meta.Struct
 	stru, err = meta.StructByValue(reflect.ValueOf(øptrToFatStruct))
 
@@ -23,7 +23,7 @@ func ToRow(øptrToFatStruct interface{}, row *Row) (err error) {
 		return
 	}
 
-	t := TableOf(øptrToFatStruct)
+	t := r.TableOf(øptrToFatStruct)
 
 	if t == nil {
 		err = fmt.Errorf("%T is not registered, use RegisterTable", øptrToFatStruct)
@@ -57,7 +57,7 @@ func ToRow(øptrToFatStruct interface{}, row *Row) (err error) {
 			return
 		}
 
-		rowField := FieldOf(ff)
+		rowField := r.FieldOf(ff)
 		v := ff.Get()
 
 		switch v.(type) {

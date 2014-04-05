@@ -20,19 +20,21 @@ type coop struct {
 }
 
 var COOP = fat.Proto(&coop{}).(*coop)
+var registry = NewRegistries()
 
 func init() {
-	MustRegisterTable("co_op", COOP)
+	registry.MustRegisterTable("co_op", COOP)
+	// MustRegisterTable("co_op", COOP)
 }
 
 func TestRegistry(t *testing.T) {
-	f := FieldOf(COOP.Name)
+	f := registry.FieldOf(COOP.Name)
 
 	if f == nil {
 		t.Error("field should not be nil")
 	}
 
-	ta := TableOf(COOP)
+	ta := registry.TableOf(COOP)
 
 	if ta == nil {
 		t.Error("table should not be nil")

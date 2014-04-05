@@ -20,7 +20,7 @@ var fatFieldNil = reflect.ValueOf(fatField)
   only the fields that are *fat.Field and not nil are chosen to be set
 	from the row. fields that are not set in the row, are set to nil
 */
-func FromRow(row *Row, øptrToFatStruct interface{}) (err error) {
+func (r *Registry) FromRow(row *Row, øptrToFatStruct interface{}) (err error) {
 	fn := func(field *meta.Field) {
 		if err != nil {
 			return
@@ -36,7 +36,7 @@ func FromRow(row *Row, øptrToFatStruct interface{}) (err error) {
 			return
 		}
 
-		dbField := FieldOf(ff)
+		dbField := r.FieldOf(ff)
 
 		if row.Values()[dbField] != nil {
 			fatField := field.Value.Interface().(*fat.Field)
