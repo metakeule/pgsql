@@ -95,18 +95,19 @@ type Company struct {
 
 var PERSON = fat.Proto(&Person{}).(*Person)
 var CORPORATION = fat.Proto(&Corporation{}).(*Corporation)
+var registry = pgsqlfat.NewRegistries()
 
 func init() {
 	CORPORATION.Name.Validator = fat.Validaters(fat.StringMustNotBeEmpty)
 
-	pgsqlfat.MustRegisterTable("person", PERSON)
-	pgsqlfat.MustRegisterTable("corporation", CORPORATION)
+	registry.MustRegisterTable("person", PERSON)
+	registry.MustRegisterTable("corporation", CORPORATION)
 
 }
 
 func main() {
 	RESTRouter := router.NewETagged()
-	REST := rest.NewREST(DB, RESTRouter)
+	REST := rest.NewREST(DB, registry, RESTRouter)
 
 	REST.Mount(
 		PERSON, "person",
@@ -148,7 +149,7 @@ func main() {
 }
 
 func initCorporation() {
-	corporationTable := pgsqlfat.TableOf(CORPORATION)
+	corporationTable := registry.TableOf(CORPORATION)
 
 	_, e := DB.Exec(corporationTable.Create().String())
 	if e != nil {
@@ -158,7 +159,7 @@ func initCorporation() {
 
 	r := pgsql.NewRow(DB, corporationTable)
 	r.Debug = true
-	e = r.Set(pgsqlfat.FieldOf(CORPORATION.Name), "Know")
+	e = r.Set(registry.FieldOf(CORPORATION.Name), "Know")
 	if e != nil {
 		fmt.Printf("Error: %s\n", e.Error())
 		return
@@ -174,11 +175,11 @@ func initCorporation() {
 }
 
 func insertCompany() {
-	corporationTable := pgsqlfat.TableOf(CORPORATION)
+	corporationTable := registry.TableOf(CORPORATION)
 
 	r := pgsql.NewRow(DB, corporationTable)
 	r.Debug = true
-	e := r.Set(pgsqlfat.FieldOf(CORPORATION.Name), "Stridor")
+	e := r.Set(registry.FieldOf(CORPORATION.Name), "Stridor")
 	if e != nil {
 		fmt.Printf("Error: %s\n", e.Error())
 		return
@@ -191,7 +192,7 @@ func insertCompany() {
 		return
 	}
 
-	fmt.Printf("inserted corporation with id %s\n", r.GetString(pgsqlfat.FieldOf(CORPORATION.Id)))
+	fmt.Printf("inserted corporation with id %s\n", r.GetString(registry.FieldOf(CORPORATION.Id)))
 }
 
 func insertCompany2() {
@@ -239,7 +240,7 @@ func insertCompany2() {
 func main2a() {
 	rt := router.New()
 
-	prest := rest.NewREST(DB, rt).Mount(PERSON, "person", rest.READ, nil)
+	prest := rest.NewREST(DB, registry, rt).Mount(PERSON, "person", rest.READ, nil)
 	pget := prest[rest.READ]
 
 	router.MustMount("/api/v1", rt)
@@ -285,7 +286,7 @@ func main2() {
 
 	rt := router.New()
 
-	prest := rest.NewCRUD(PERSON).Mount(DB, rt, "person", nil)
+	prest := rest.NewCRUD(registry, PERSON).Mount(DB, rt, "person", nil)
 	pget := prest.ReadRoute()
 
 	router.MustMount("/api/v1", rt)
