@@ -6,15 +6,15 @@ import (
 	"sync"
 )
 
-type RowDB interface {
+type DB interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
-type DB interface {
-	RowDB
+type DBComplete interface {
+	DB
 	Close() (ſ error)
 	Begin() (tx *sql.Tx, ſ error)
 }

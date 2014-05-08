@@ -43,7 +43,7 @@ type Row struct {
 	PostDelete   []PostDelete
 }
 
-func NewRow(db RowDB, table *Table, hooks ...interface{}) (ø *Row) {
+func NewRow(db DB, table *Table, hooks ...interface{}) (ø *Row) {
 	ø = &Row{
 		Table:        table,
 		setErrors:    []error{},
@@ -1160,6 +1160,7 @@ func (ø *Row) IsValid(f string, value interface{}) bool {
 	return false
 }
 
+/*
 func (ø *Row) Begin() (tx *sql.Tx, ſ error) {
 	if ø.isTransaction() {
 		tx = ø.Tx
@@ -1169,6 +1170,7 @@ func (ø *Row) Begin() (tx *sql.Tx, ſ error) {
 	}
 	return
 }
+*/
 
 func (ø *Row) Rollback() (ſ error) {
 	return ø.Tx.Rollback()
