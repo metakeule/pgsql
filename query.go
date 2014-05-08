@@ -28,7 +28,7 @@ func (ø Offset) Sql() (s SqlType) {
 	return
 }
 
-func escape(in string) (out string) {
+func Escape(in string) (out string) {
 	out = strings.Replace(in, "$userinput$", "", -1)
 	out = "$userinput$" + out + "$userinput$"
 	return
@@ -65,15 +65,15 @@ var Transformer = map[string]func(interface{}) string{
 func escapeValue(in interface{}) (out string) {
 	switch v := in.(type) {
 	case string:
-		out = escape(v)
+		out = Escape(v)
 	case TypedValue:
-		out = escape(v.Value.String())
+		out = Escape(v.Value.String())
 	case Sqler:
 		out = v.Sql().String()
 	case Stringer:
-		out = escape(v.String())
+		out = Escape(v.String())
 	default:
-		out = escape(fmt.Sprintf("%v", v))
+		out = Escape(fmt.Sprintf("%v", v))
 	}
 	return
 }
@@ -142,7 +142,7 @@ func escapeSearchStart(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape(inString + "%")
+	return Escape(inString + "%")
 }
 
 func escapeSearchEnd(in interface{}) (out string) {
@@ -159,7 +159,7 @@ func escapeSearchEnd(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape("%" + inString)
+	return Escape("%" + inString)
 }
 
 func escapeSearchBoth(in interface{}) (out string) {
@@ -176,7 +176,7 @@ func escapeSearchBoth(in interface{}) (out string) {
 	default:
 		inString = fmt.Sprintf("%v", v)
 	}
-	return escape("%" + inString + "%")
+	return Escape("%" + inString + "%")
 }
 
 type CompiledQuery struct {
