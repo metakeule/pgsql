@@ -73,8 +73,10 @@ func (m *Mounter) itemPath() string {
 	return path.Join(m.mountPoint, ":"+m.placeholder)
 }
 
-func (m *Mounter) getId(vars *router.Vars) string {
-	return vars.Get(m.placeholder)
+//func (m *Mounter) getId(vars *router.Vars) string {
+func (m *Mounter) getId(rq *http.Request) string {
+	return rq.FormValue(":" + m.placeholder)
+	// return vars.Get(m.placeholder)
 }
 
 func (m *Mounter) CreateRoute() *router.Route {
@@ -141,8 +143,8 @@ func (m *Mounter) serveCreate(wr http.ResponseWriter, rq *http.Request) {
 	okCreated(id).ServeHTTP(wr, rq)
 }
 
-func (m *Mounter) serveUpdate(vars *router.Vars, wr http.ResponseWriter, rq *http.Request) {
-	id := m.getId(vars)
+func (m *Mounter) serveUpdate(wr http.ResponseWriter, rq *http.Request) {
+	id := m.getId(rq)
 	body, err := ioutil.ReadAll(rq.Body)
 
 	if id == "" || err != nil {
@@ -174,8 +176,8 @@ func (m *Mounter) serveUpdate(vars *router.Vars, wr http.ResponseWriter, rq *htt
 	serveSuccess(wr, rq)
 }
 
-func (m *Mounter) serveDelete(vars *router.Vars, wr http.ResponseWriter, rq *http.Request) {
-	id := m.getId(vars)
+func (m *Mounter) serveDelete(wr http.ResponseWriter, rq *http.Request) {
+	id := m.getId(rq)
 
 	if id == "" {
 		wr.WriteHeader(400)
@@ -192,7 +194,7 @@ func (m *Mounter) serveDelete(vars *router.Vars, wr http.ResponseWriter, rq *htt
 	serveSuccess(wr, rq)
 }
 
-func (m *Mounter) serveRead(vars *router.Vars, wr http.ResponseWriter, rq *http.Request) {
+func (m *Mounter) serveRead(wr http.ResponseWriter, rq *http.Request) {
 
 	// func (m *Mounter) serveRead(wr http.ResponseWriter, rq *http.Request) {
 	//	var vars = &router.Vars{}
@@ -200,7 +202,7 @@ func (m *Mounter) serveRead(vars *router.Vars, wr http.ResponseWriter, rq *http.
 	//	wrapstesting.MustUnWrap(wr, &vars)
 
 	//	fmt.Println("serving read")
-	id := m.getId(vars)
+	id := m.getId(rq)
 
 	if id == "" {
 		//	fmt.Println("id empty")
