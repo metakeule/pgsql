@@ -68,6 +68,42 @@ func TestBoolsCreate(t *testing.T) {
 
 }
 
+func TestBoolsEmpty(t *testing.T) {
+	id, err := CRUDBoolsTest.Create(db, b(`
+	{
+		"Bools": []
+	}
+ 	`), false, "")
+
+	if err != nil {
+		t.Errorf("can't create BoolsTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = CRUDBoolsTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created boolstest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Bools"]) != "[]" {
+		t.Errorf("boolstest Bools is not [], but %#v", jsonify(x["Bools"]))
+	}
+
+	if x["BoolsNull"] != nil {
+		t.Errorf("boolstest BoolsNull is %#v, but should be nil", x["BoolsNull"])
+	}
+
+}
+
 func TestBoolsUpdate(t *testing.T) {
 	id, _ := CRUDBoolsTest.Create(db, b(`
 	{

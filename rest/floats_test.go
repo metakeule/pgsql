@@ -69,6 +69,42 @@ func TestFloatsCreate(t *testing.T) {
 
 }
 
+func TestFloatsEmpty(t *testing.T) {
+	id, err := CRUDFloatsTest.Create(db, b(`
+	{
+		"Floats": []
+	}
+ 	`), false, "")
+
+	if err != nil {
+		t.Errorf("can't create FloatsTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = CRUDFloatsTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created floatstest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Floats"]) != "[]" {
+		t.Errorf("floatstest Floats is not [], but %#v", x["Floats"])
+	}
+
+	if x["FloatsNull"] != nil {
+		t.Errorf("floatstest FloatsNull is %#v, but should be nil", x["FloatsNull"])
+	}
+
+}
+
 func TestFloatsUpdate(t *testing.T) {
 	id, _ := CRUDFloatsTest.Create(db, b(`
 	{

@@ -69,6 +69,42 @@ func TestStringsCreate(t *testing.T) {
 
 }
 
+func TestStringsEmpty(t *testing.T) {
+	id, err := CRUDStringsTest.Create(db, b(`
+	{
+		"Strings": []
+	}
+ 	`), false, "")
+
+	if err != nil {
+		t.Errorf("can't create StringsTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = CRUDStringsTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created stringstest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Strings"]) != `[]` {
+		t.Errorf("stringstest Strings is not [], but %#v", jsonify(x["Strings"]))
+	}
+
+	if x["StringsNull"] != nil {
+		t.Errorf("stringstest StringsNull is %#v, but should be nil", x["StringsNull"])
+	}
+
+}
+
 func TestStringsUpdate(t *testing.T) {
 	id, _ := CRUDStringsTest.Create(db, b(`
 	{

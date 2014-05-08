@@ -173,26 +173,31 @@ func (c *CRUD) scanFieldToStruct(queryRow *Row, structField reflect.Value, dbFie
 			"]")
 	case StringsType:
 		ss := []string{}
-		s_s := strings.Split(pgsqlfat.TrimCurly(queryRow.GetString(dbField)), ",")
-		for _, sss := range s_s {
-			ss = append(ss, strings.Trim(sss, `" `))
+		s__ := pgsqlfat.TrimCurly(queryRow.GetString(dbField))
+		if s__ != "" {
+			s_s := strings.Split(s__, ",")
+			for _, sss := range s_s {
+				ss = append(ss, strings.Trim(sss, `" `))
+			}
 		}
 		err = fatField.Set(fat.Strings(ss...))
 	case JsonType:
 		err = fatField.ScanString(queryRow.GetString(dbField))
 	case BoolsType:
-		vls := strings.Split(
-			pgsqlfat.TrimCurly(queryRow.GetString(dbField)),
-			",")
-		bs := make([]bool, len(vls))
-		for j, bstri := range vls {
-			switch strings.TrimSpace(bstri) {
-			case "t":
-				bs[j] = true
-			case "f":
-				bs[j] = false
-			default:
-				return nil, fmt.Errorf("%s is no []bool", queryRow.GetString(dbField))
+		s__ := pgsqlfat.TrimCurly(queryRow.GetString(dbField))
+		var bs []bool
+		if s__ != "" {
+			vls := strings.Split(s__, ",")
+			bs = make([]bool, len(vls))
+			for j, bstri := range vls {
+				switch strings.TrimSpace(bstri) {
+				case "t":
+					bs[j] = true
+				case "f":
+					bs[j] = false
+				default:
+					return nil, fmt.Errorf("%s is no []bool", queryRow.GetString(dbField))
+				}
 			}
 		}
 		err = fatField.Set(fat.Bools(bs...))
@@ -204,14 +209,18 @@ func (c *CRUD) scanFieldToStruct(queryRow *Row, structField reflect.Value, dbFie
 		//var t []time.Time
 		var ts string
 		queryRow.Get(dbField, &ts)
-		vls := strings.Split(pgsqlfat.TrimCurly(ts), ",")
-		tms := make([]time.Time, len(vls))
-		for j, tmsStri := range vls {
-			tm, e := fmtdate.Parse("YYYY-MM-DD hh:mm:ss+00", strings.Trim(tmsStri, `"`))
-			if e != nil {
-				return nil, fmt.Errorf("can't parse time %s: %s", tmsStri, e.Error())
+		s__ := pgsqlfat.TrimCurly(ts)
+		var tms []time.Time
+		if s__ != "" {
+			vls := strings.Split(s__, ",")
+			tms = make([]time.Time, len(vls))
+			for j, tmsStri := range vls {
+				tm, e := fmtdate.Parse("YYYY-MM-DD hh:mm:ss+00", strings.Trim(tmsStri, `"`))
+				if e != nil {
+					return nil, fmt.Errorf("can't parse time %s: %s", tmsStri, e.Error())
+				}
+				tms[j] = tm
 			}
-			tms[j] = tm
 		}
 		// fmt.Printf("times: %#v\n", tms)
 		err = fatField.Set(fat.Times(tms...))

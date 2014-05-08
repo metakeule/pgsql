@@ -69,6 +69,42 @@ func TestTimesCreate(t *testing.T) {
 
 }
 
+func TestTimesEmpty(t *testing.T) {
+	id, err := CRUDTimesTest.Create(db, b(`
+	{
+		"Times": []
+	}
+ 	`), false, "")
+
+	if err != nil {
+		t.Errorf("can't create TimesTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = CRUDTimesTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created timestest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Times"]) != `[]` {
+		t.Errorf("timestest Times is not [], but %#v", jsonify(x["Times"]))
+	}
+
+	if x["TimesNull"] != nil {
+		t.Errorf("timestest TimesNull is %#v, but should be nil", x["TimesNull"])
+	}
+
+}
+
 func TestTimesUpdate(t *testing.T) {
 	id, _ := CRUDTimesTest.Create(db, b(`
 	{

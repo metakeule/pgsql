@@ -69,6 +69,41 @@ func TestIntsCreate(t *testing.T) {
 
 }
 
+func TestIntsEmpty(t *testing.T) {
+	id, err := CRUDIntsTest.Create(db, b(`
+	{
+		"Ints": []
+	}
+ 	`), false, "")
+
+	if err != nil {
+		t.Errorf("can't create IntsTest: %s", err)
+		return
+	}
+
+	if id == "" {
+		t.Errorf("got empty id")
+		return
+	}
+
+	var x map[string]interface{}
+
+	x, err = CRUDIntsTest.Read(db, id)
+
+	if err != nil {
+		t.Errorf("can't get created intstest with id %s: %s", id, err)
+		return
+	}
+
+	if jsonify(x["Ints"]) != "[]" {
+		t.Errorf("intstest Ints is not [], but %#v", x["Ints"])
+	}
+
+	if x["IntsNull"] != nil {
+		t.Errorf("intstest IntsNull is %#v, but should be nil", x["IntsNull"])
+	}
+}
+
 func TestIntsUpdate(t *testing.T) {
 	id, _ := CRUDIntsTest.Create(db, b(`
 	{
