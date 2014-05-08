@@ -362,3 +362,28 @@ func TestToSql(t *testing.T) {
 		}
 	}
 }
+
+func TestInterpretedString(t *testing.T) {
+	empty := NewPgInterpretedString(`{}`)
+
+	if len(empty.Strings()) != 0 {
+		t.Errorf("empty strings is not empty, but %#v", empty.Strings())
+	}
+
+	if len(empty.Bools()) != 0 {
+		t.Errorf("empty bools is not empty, but %#v", empty.Bools())
+	}
+
+	if len(empty.Ints()) != 0 {
+		t.Errorf("empty ints is not empty, but %#v", empty.Ints())
+	}
+
+	if len(empty.Floats()) != 0 {
+		t.Errorf("empty floats is not empty, but %#v", empty.Floats())
+	}
+
+	if len(empty.Times()) != 0 {
+		t.Errorf("empty times is not empty, but %#v", empty.Times())
+	}
+
+}

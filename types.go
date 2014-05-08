@@ -2,12 +2,12 @@ package pgsql
 
 import (
 	"fmt"
+	"github.com/metakeule/fmtdate"
 	"strconv"
 	"time"
-	"github.com/metakeule/fmtdate"
 	// 	"encoding/xml"
-	"strings"
 	"github.com/metakeule/typeconverter"
+	"strings"
 )
 
 type SqlType string
@@ -345,6 +345,9 @@ func (ø *pgInterpretedString) Ints() (i []int) {
 func (ø *pgInterpretedString) Strings() (ses []string) {
 	str := ø.StringType.String()
 	inner := str[1 : len(str)-1]
+	if inner == "" {
+		return
+	}
 	a := strings.Split(inner, ",")
 	for _, s := range a {
 		// fmt.Printf("s: %#v\n", s)
@@ -605,7 +608,7 @@ func (ø *TypedValue) Sql() SqlType {
 	if ø.dontChange {
 		return Sql(ø.Value.String())
 	}
-	val := escape(ø.Value.String())
+	val := Escape(ø.Value.String())
 	return Sql(fmt.Sprintf("%s::%s", val, ø.PgType.String()))
 }
 
