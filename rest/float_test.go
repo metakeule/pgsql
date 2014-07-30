@@ -2,7 +2,7 @@ package rest
 
 import (
 	"fmt"
-	"github.com/go-on/fat"
+	"github.com/go-on/lib/internal/fat"
 
 	// . "github.com/metakeule/pgsql"
 

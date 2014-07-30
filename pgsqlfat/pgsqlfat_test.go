@@ -3,7 +3,7 @@ package pgsqlfat
 import (
 	"testing"
 
-	"github.com/go-on/fat"
+	"github.com/go-on/lib/internal/fat"
 )
 
 // . "github.com/metakeule/pgsql"

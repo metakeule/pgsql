@@ -5,15 +5,15 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"github.com/go-on/fat"
+	"github.com/go-on/lib/internal/fat"
 	"github.com/metakeule/dbwrap"
 	. "github.com/metakeule/pgsql"
 
 	"strings"
 	// "net/url"
 	//"fmt"
-	"testing"
 	"github.com/lib/pq"
+	"testing"
 )
 
 type testdrv struct {

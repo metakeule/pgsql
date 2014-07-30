@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-on/fat"
+	"github.com/go-on/lib/internal/fat"
 	. "github.com/metakeule/pgsql"
 )
 

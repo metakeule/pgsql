@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-on/fat"
+	"github.com/go-on/router/route"
+
+	"github.com/go-on/lib/internal/fat"
 	"github.com/go-on/router"
 	"github.com/go-on/wrap-contrib-testing/wrapstesting"
 	. "github.com/metakeule/pgsql"
@@ -75,27 +77,28 @@ func (m *Mounter) itemPath() string {
 
 //func (m *Mounter) getId(vars *router.Vars) string {
 func (m *Mounter) getId(rq *http.Request) string {
-	return rq.FormValue(":" + m.placeholder)
+	return router.GetRouteParam(rq, m.placeholder)
+	//return rq.FormValue(":" + m.placeholder)
 	// return vars.Get(m.placeholder)
 }
 
-func (m *Mounter) CreateRoute() *router.Route {
+func (m *Mounter) CreateRoute() *route.Route {
 	return m.Router.POST("/"+m.mountPoint, wrapstesting.HandlerMethod(m.serveCreate))
 }
 
-func (m *Mounter) ListRoute() *router.Route {
+func (m *Mounter) ListRoute() *route.Route {
 	return m.Router.GET("/"+m.mountPoint, wrapstesting.HandlerMethod(m.serveList))
 }
 
-func (m *Mounter) UpdateRoute() *router.Route {
+func (m *Mounter) UpdateRoute() *route.Route {
 	return m.Router.PATCH("/"+m.itemPath(), wrapstesting.HandlerMethod(m.serveUpdate))
 }
 
-func (m *Mounter) DeleteRoute() *router.Route {
+func (m *Mounter) DeleteRoute() *route.Route {
 	return m.Router.DELETE("/"+m.itemPath(), wrapstesting.HandlerMethod(m.serveDelete))
 }
 
-func (m *Mounter) ReadRoute() *router.Route {
+func (m *Mounter) ReadRoute() *route.Route {
 	return m.Router.GET("/"+m.itemPath(), wrapstesting.HandlerMethod(m.serveRead))
 }
 

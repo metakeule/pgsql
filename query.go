@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	// "github.com/metakeule/fastreplace"
-	"strings"
 	"github.com/metakeule/templ"
+	"strings"
 )
 
 type Limit int
@@ -413,6 +413,16 @@ type JoinStruct struct {
 	As    string
 	Type  JoinType
 	On    *Comparer
+}
+
+func (js *JoinStruct) Field(f *Field) *AsStruct {
+	return JoinField(js, f)
+}
+
+func JoinField(js *JoinStruct, f *Field) *AsStruct {
+	fij := &FieldInJoin{f, js.As}
+	as := fmt.Sprintf(`%s.%s`, fij.As, fij.Name)
+	return &AsStruct{Sqler: fij, As: as, Type: f.Type}
 }
 
 func (ø *JoinStruct) Sql() SqlType {

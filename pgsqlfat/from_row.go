@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-on/fat"
-	"github.com/go-on/meta"
+	"github.com/go-on/lib/internal/fat"
+	"github.com/go-on/lib/internal/meta"
 	"github.com/metakeule/fmtdate"
 	. "github.com/metakeule/pgsql"
 )

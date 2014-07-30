@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"github.com/go-on/router/route"
 	. "github.com/metakeule/pgsql"
 	"github.com/metakeule/pgsql/pgsqlfat"
 
@@ -30,10 +31,10 @@ const (
 
 var ALL = CREATE | READ | UPDATE | DELETE | LIST
 
-func (r *rest) Mount(proto interface{}, mountPoint string, actions action, options *options) (routes map[action]*router.Route) {
+func (r *rest) Mount(proto interface{}, mountPoint string, actions action, options *options) (routes map[action]*route.Route) {
 	mounter := NewCRUD(r.Registry, proto).Mount(r.db, r.Router, mountPoint, options)
 
-	routes = map[action]*router.Route{}
+	routes = map[action]*route.Route{}
 
 	if has(actions, CREATE) {
 		routes[CREATE] = mounter.CreateRoute()
