@@ -19,14 +19,14 @@ import (
 	"github.com/lib/pq"
 )
 
-var dbconnectString = "postgres://docker:docker@172.17.0.2:5432/pgsqltest?schema=public"
-
-func init() {
+func configureDB() string {
+	dbconnectString := "postgres://docker:docker@172.17.0.2:5432/pgsqltest?schema=public"
 	if dbconn := os.Getenv("TEST_DB_CONNECTION"); dbconn != "" {
 		dbconnectString = dbconn
 	}
 	fmt.Println("TEST_DB_CONNECTION is %#v", os.Getenv("TEST_DB_CONNECTION"))
 	fmt.Println("dbconnectString is set to %#v", dbconnectString)
+	return dbconnectString
 }
 
 type testdrv struct {
@@ -41,6 +41,7 @@ var (
 	//	db                *sql.DB
 	wrapperDriverName = "dbtest"
 	testdb            = testdrv{}
+	dbconnectString   = configureDB()
 )
 
 func connect(driver string, str string) *sql.DB {
