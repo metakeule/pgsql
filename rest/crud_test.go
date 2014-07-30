@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"os"
+
 	"github.com/go-on/lib/internal/fat"
 	"github.com/metakeule/dbwrap"
 	. "github.com/metakeule/pgsql"
@@ -12,9 +14,18 @@ import (
 	"strings"
 	// "net/url"
 	//"fmt"
-	"github.com/lib/pq"
 	"testing"
+
+	"github.com/lib/pq"
 )
+
+var dbconnectString = "postgres://docker:docker@172.17.0.2:5432/pgsqltest?schema=public"
+
+func init() {
+	if dbconn := os.Getenv("TEST_DB_CONNECTION"); dbconn != "" {
+		dbconnectString = dbconn
+	}
+}
 
 type testdrv struct {
 	Query string
@@ -126,7 +137,7 @@ func makeDB() *sql.DB {
 		return conn.Exec(query, args)
 	}
 
-	return connect(wrapperDriverName, "postgres://docker:docker@172.17.0.2:5432/pgsqltest?schema=public")
+	return connect(wrapperDriverName, dbconnectString)
 }
 
 var db = makeDB()
