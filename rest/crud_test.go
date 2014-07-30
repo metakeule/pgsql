@@ -25,6 +25,8 @@ func init() {
 	if dbconn := os.Getenv("TEST_DB_CONNECTION"); dbconn != "" {
 		dbconnectString = dbconn
 	}
+	fmt.Println("TEST_DB_CONNECTION is %#v", os.Getenv("TEST_DB_CONNECTION"))
+	fmt.Println("dbconnectString is set to %#v", dbconnectString)
 }
 
 type testdrv struct {
