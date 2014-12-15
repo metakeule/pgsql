@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-on/fat"
-	"github.com/go-on/router"
+	"gopkg.in/go-on/router.v2"
 	"github.com/metakeule/pgsql"
 	"github.com/metakeule/pgsql/pgsqlfat"
 	"github.com/metakeule/pgsql/rest"

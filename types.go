@@ -2,7 +2,7 @@ package pgsql
 
 import (
 	"fmt"
-	"github.com/metakeule/fmtdate"
+	"gopkg.in/metakeule/fmtdate.v1"
 	"strconv"
 	"time"
 	// 	"encoding/xml"

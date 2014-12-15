@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-on/lib/internal/fat"
+	"gopkg.in/go-on/lib.v2/internal/fat"
 	"github.com/metakeule/dbwrap"
 	. "github.com/metakeule/pgsql"
 

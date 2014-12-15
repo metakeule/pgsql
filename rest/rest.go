@@ -1,11 +1,11 @@
 package rest
 
 import (
-	"github.com/go-on/router/route"
+	"gopkg.in/go-on/router.v2/route"
 	. "github.com/metakeule/pgsql"
 	"github.com/metakeule/pgsql/pgsqlfat"
 
-	"github.com/go-on/router"
+	"gopkg.in/go-on/router.v2"
 )
 
 type rest struct {

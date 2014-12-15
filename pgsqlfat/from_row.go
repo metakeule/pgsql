@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-on/lib/internal/fat"
-	"github.com/go-on/lib/internal/meta"
-	"github.com/metakeule/fmtdate"
+	"gopkg.in/go-on/lib.v2/internal/fat"
+	"gopkg.in/go-on/lib.v2/internal/meta"
+	"gopkg.in/metakeule/fmtdate.v1"
 	. "github.com/metakeule/pgsql"
 )
 

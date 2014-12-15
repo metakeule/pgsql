@@ -2,11 +2,11 @@ package pgsqlfat
 
 import (
 	"fmt"
-	"github.com/go-on/lib/internal/meta"
+	"gopkg.in/go-on/lib.v2/internal/meta"
 	"reflect"
 	"strings"
 
-	"github.com/go-on/lib/internal/fat"
+	"gopkg.in/go-on/lib.v2/internal/fat"
 	. "github.com/metakeule/pgsql"
 )
 

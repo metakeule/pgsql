@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-on/router/route"
+	"gopkg.in/go-on/router.v2/route"
 
-	"github.com/go-on/lib/internal/fat"
-	"github.com/go-on/router"
+	"gopkg.in/go-on/lib.v2/internal/fat"
+	"gopkg.in/go-on/router.v2"
 	"github.com/go-on/wrap-contrib-testing/wrapstesting"
 	. "github.com/metakeule/pgsql"
 )
