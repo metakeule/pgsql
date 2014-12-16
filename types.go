@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 	// 	"encoding/xml"
-	"github.com/metakeule/typeconverter"
+	"gopkg.in/metakeule/typeconverter.v2"
 	"strings"
 )
 

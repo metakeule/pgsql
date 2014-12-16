@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"gopkg.in/go-on/lib.v2/internal/fat"
-	"github.com/metakeule/dbwrap"
-	. "github.com/metakeule/pgsql"
+	"gopkg.in/metakeule/dbwrap.v2"
+	. "gopkg.in/metakeule/pgsql.v5"
 
 	"strings"
 	// "net/url"

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"gopkg.in/go-on/lib.v2/internal/fat"
-	. "github.com/metakeule/pgsql"
+	. "gopkg.in/metakeule/pgsql.v5"
 )
 
 func (r *CRUD) Create(db DB, json_ []byte, validateOnly bool, singleField string) (id string, err error) {

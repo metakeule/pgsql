@@ -17,7 +17,7 @@ package main
 import (
 	"gopkg.in/fsnotify.v1"
 	"fmt"
-	"github.com/metakeule/goh4"
+	"gopkg.in/metakeule/goh4.v5"
 	"io/ioutil"
 	"log"
 	"os"

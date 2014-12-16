@@ -13,8 +13,8 @@ import (
 
 	"gopkg.in/go-on/lib.v2/internal/fat"
 	"gopkg.in/go-on/router.v2"
-	"github.com/go-on/wrap-contrib-testing/wrapstesting"
-	. "github.com/metakeule/pgsql"
+	"gopkg.in/go-on/wrap-contrib-testing.v2/wrapstesting"
+	. "gopkg.in/metakeule/pgsql.v5"
 )
 
 type Mounter struct {

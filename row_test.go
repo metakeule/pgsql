@@ -3,7 +3,7 @@ package pgsql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/metakeule/typeconverter"
+	"gopkg.in/metakeule/typeconverter.v2"
 	"strings"
 	"testing"
 )

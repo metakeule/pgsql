@@ -2,7 +2,7 @@ package pgsql
 
 import (
 	"fmt"
-	"github.com/metakeule/typeconverter"
+	"gopkg.in/metakeule/typeconverter.v2"
 	"testing"
 	"time"
 )

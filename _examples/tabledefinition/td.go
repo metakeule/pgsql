@@ -5,8 +5,8 @@ import (
 	//	"database/sql/driver"
 	"fmt"
 	//"github.com/mattn/go-sqlite3"
-	"github.com/metakeule/dbwrap"
-	"github.com/metakeule/pgsql"
+	"gopkg.in/metakeule/dbwrap.v2"
+	"gopkg.in/metakeule/pgsql.v5"
 )
 
 type areaTable struct {

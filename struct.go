@@ -2,7 +2,7 @@ package pgsql
 
 import (
 	"fmt"
-	"github.com/metakeule/meta"
+	"gopkg.in/metakeule/meta.v5"
 	"reflect"
 	"regexp"
 	"strconv"

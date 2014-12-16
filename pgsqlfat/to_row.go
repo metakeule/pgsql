@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"gopkg.in/go-on/lib.v2/internal/fat"
-	. "github.com/metakeule/pgsql"
+	. "gopkg.in/metakeule/pgsql.v5"
 )
 
 /*

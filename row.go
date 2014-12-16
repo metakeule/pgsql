@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/metakeule/meta"
-	"github.com/metakeule/typeconverter"
+	"gopkg.in/metakeule/meta.v5"
+	"gopkg.in/metakeule/typeconverter.v2"
 )
 
 type PreValidate func(*Row) error

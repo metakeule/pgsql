@@ -2,8 +2,8 @@ package rest
 
 import (
 	"gopkg.in/go-on/router.v2/route"
-	. "github.com/metakeule/pgsql"
-	"github.com/metakeule/pgsql/pgsqlfat"
+	. "gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
 
 	"gopkg.in/go-on/router.v2"
 )

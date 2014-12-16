@@ -1,7 +1,7 @@
 package pgsql
 
 import (
-	// . "github.com/metakeule/pgsql"
+	// . "gopkg.in/metakeule/pgsql.v5"
 	"testing"
 )
 

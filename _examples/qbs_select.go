@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
-	. "github.com/metakeule/pgsql"
+	. "gopkg.in/metakeule/pgsql.v5"
 	"os"
 	// "reflect"
 )

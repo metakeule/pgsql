@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-on/fat"
 	"gopkg.in/go-on/router.v2"
-	"github.com/metakeule/pgsql"
-	"github.com/metakeule/pgsql/pgsqlfat"
-	"github.com/metakeule/pgsql/rest"
+	"gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
+	"gopkg.in/metakeule/pgsql.v5/rest"
 )
 
 /*

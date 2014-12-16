@@ -1,7 +1,7 @@
 package person
 
 import (
-	. "github.com/metakeule/pgsql"
+	. "gopkg.in/metakeule/pgsql.v5"
 )
 
 var Id = NewField("Id", IntType, PrimaryKey|Serial)

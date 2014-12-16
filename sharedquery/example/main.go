@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
-	. "github.com/metakeule/pgsql"
-	"github.com/metakeule/pgsql/sharedquery"
+	. "gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v5/sharedquery"
 	"os"
 	"time"
 )

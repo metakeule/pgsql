@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "github.com/metakeule/pgsql"
+	. "gopkg.in/metakeule/pgsql.v5"
 	"time"
 )
 
