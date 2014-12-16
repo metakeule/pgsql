@@ -3,8 +3,12 @@ package pgsql
 import (
 	"fmt"
 	"reflect"
+
+	"gopkg.in/go-on/lib.v2/internal/template"
+	"gopkg.in/go-on/lib.v2/internal/template/placeholder"
 	// "github.com/metakeule/fastreplace"
-	"github.com/metakeule/templ"
+	// "github.com/metakeule/templ"
+
 	"strings"
 )
 
@@ -35,8 +39,9 @@ func Escape(in string) (out string) {
 }
 
 func (ø SqlType) Placeholder() Placeholder {
-	t := templ.NewPlaceholder("sql."+ø.String(), handleSql)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder("sql."+ø.String(), handleSql)
+	// t := templ.NewPlaceholder("sql."+ø.String(), handleSql)
+	return typedPlaceholder{t}
 }
 
 func handleSql(in interface{}) (out string) {
@@ -79,14 +84,14 @@ func escapeValue(in interface{}) (out string) {
 }
 
 type Placeholder interface {
-	templ.Setter
+	placeholder.Setter
 	Sqler
-	Set(val interface{}) templ.Setter
-	Setf(format string, val ...interface{}) templ.Setter
+	Set(val interface{}) placeholder.Setter
+	Setf(format string, val ...interface{}) placeholder.Setter
 	// String() string
 }
 
-type typedPlaceholder struct{ *templ.Placeholder }
+type typedPlaceholder struct{ placeholder.Placeholder }
 
 func (ø typedPlaceholder) Sql() SqlType {
 	return Sql("@@" + ø.Placeholder.Name() + "@@")
@@ -96,22 +101,22 @@ func (ø typedPlaceholder) Sql() SqlType {
 type SearchStart string
 
 func (ø SearchStart) Placeholder() Placeholder {
-	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchStart)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchStart)
+	return typedPlaceholder{t}
 }
 
 type SearchEnd string
 
 func (ø SearchEnd) Placeholder() Placeholder {
-	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchEnd)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchEnd)
+	return typedPlaceholder{t}
 }
 
 type SearchBoth string
 
 func (ø SearchBoth) Placeholder() Placeholder {
-	t := templ.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchBoth)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder(reflect.TypeOf(ø).Name()+"."+string(ø), escapeSearchBoth)
+	return typedPlaceholder{t}
 }
 
 func (ø *Field) Placeholder() Placeholder {
@@ -119,13 +124,13 @@ func (ø *Field) Placeholder() Placeholder {
 		tv := ø.MustValue(in)
 		return tv.Sql().String()
 	}
-	t := templ.NewPlaceholder(ø.Table.Name+"."+ø.Name, fn)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder(ø.Table.Name+"."+ø.Name, fn)
+	return typedPlaceholder{t}
 }
 
 func (ø *TypedValue) Placeholder() Placeholder {
-	t := templ.NewPlaceholder(ø.PgType.String(), escapeValue)
-	return typedPlaceholder{&t}
+	t := template.NewPlaceholder(ø.PgType.String(), escapeValue)
+	return typedPlaceholder{t}
 }
 
 func escapeSearchStart(in interface{}) (out string) {
@@ -182,7 +187,7 @@ func escapeSearchBoth(in interface{}) (out string) {
 type CompiledQuery struct {
 	//freplace *fastreplace.FReplace
 	//*template.Template
-	*templ.Template
+	*template.Template
 	Query Query
 }
 
@@ -210,19 +215,23 @@ func (ø *CompiledQuery) Instance() (c *CompiledQueryInstance) {
 */
 
 func Compile(name string, q Query) (c *CompiledQuery, ſ error) {
-	t := templ.New(name)
+	t := template.New(name)
 	t.MustAdd(q.String())
-	ſ = t.Parse()
+	t.Parse()
+
+	// ſ = t.Parse()
 	//t, ſ := template.New(q.String())
 	//t.Strict = true
 	c = &CompiledQuery{
 		Query:    q,
 		Template: t,
 	}
-	if ſ != nil {
-		t = nil
-		return
-	}
+	/*
+		if ſ != nil {
+			t = nil
+			return
+		}
+	*/
 	return
 }
 
