@@ -364,7 +364,7 @@ func TestCRUDList(t *testing.T) {
 
 	//CRUDCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
 
-	companyNameField := registry.Field("*github.com/metakeule/pgsql/rest.Company", "Name")
+	companyNameField := registry.Field("*gopkg.in/metakeule/pgsql.v5/rest.Company", "Name")
 
 	if companyNameField == nil {
 		panic("can't find field for COMPANY.Name")
