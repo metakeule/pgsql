@@ -2,7 +2,9 @@ package pgsql
 
 import (
 	"fmt"
-	"gopkg.in/metakeule/meta.v5"
+
+	"gopkg.in/go-on/lib.v2/internal/meta"
+	// "gopkg.in/metakeule/meta.v5"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -59,10 +61,15 @@ func TableDefinition(strPtr interface{}) (td *tableDefinition, err error) {
 	td.Fields = map[string]*Field{}
 	td.Uniques = map[string][]string{}
 	// maps fieldname to field
-	meta.Struct.EachRaw(strPtr, func(field reflect.StructField, val reflect.Value) {
-		if err != nil {
-			return
-		}
+	st, err := meta.StructByValue(reflect.ValueOf(strPtr))
+	if err != nil {
+		return
+	}
+	st.Each(func(f *meta.Field) {
+
+		field := f.Type
+		val := f.Value
+
 		switch field.Type {
 		case tableType:
 			tName := field.Name
@@ -70,6 +77,7 @@ func TableDefinition(strPtr interface{}) (td *tableDefinition, err error) {
 				tName = name
 			}
 			td.Table = NewTable(tName)
+
 			val.Set(reflect.ValueOf(td.Table))
 			if un := field.Tag.Get("unique"); un != "" {
 				for _, uniq := range strings.Split(un, ",") {
@@ -172,6 +180,8 @@ func TableDefinition(strPtr interface{}) (td *tableDefinition, err error) {
 			val.Set(reflect.ValueOf(f))
 		}
 	})
+	// meta.Struct.EachRaw(strPtr, func(field reflect.StructField, val reflect.Value) {
+
 	return
 }
 

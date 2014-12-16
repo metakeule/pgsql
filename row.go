@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/metakeule/meta.v5"
+	"gopkg.in/go-on/lib.v2/internal/meta"
+
+	// "gopkg.in/metakeule/meta.v5"
 	"gopkg.in/metakeule/typeconverter.v2"
 )
 
@@ -144,7 +146,18 @@ func (ø *Row) Get(o ...interface{}) {
 }
 
 func setFieldInStruct(vl reflect.Value, fieldName string, tagVal string, v *TypedValue, s interface{}) error {
-	tag := meta.Struct.Tag(s, fieldName)
+
+	str, err := meta.StructByValue(meta.FinalValue(s))
+
+	if err != nil {
+		return err
+	}
+
+	tag, err2 := str.Tag(fieldName)
+	if err2 != nil {
+		return err2
+	}
+
 	// tag does match the given
 	if tag != nil && strings.Contains(tag.Get("db.select"), tagVal) {
 		err := Convert(v, vl.Addr().Interface())
@@ -157,7 +170,7 @@ func setFieldInStruct(vl reflect.Value, fieldName string, tagVal string, v *Type
 
 //ro.Get(artist.Id, &a.Id, artist.FirstName, &a.FirstName, artist.LastName, &a.LastName, artist.GalleryArtist, &a.GalleryArtist, artist.Vita, &a.Vita, artist.Area, &ar)
 func (ø *Row) GetStruct(tagVal string, s interface{}) (err error) {
-	fv := meta.Struct.FinalValue(s)
+	fv := meta.FinalValue(s)
 
 	for f, v := range ø.values {
 		if f.queryField == "" {
@@ -1292,15 +1305,29 @@ func (ø *Row) queryField(name string, opts ...interface{}) interface{} {
 // TODO make a compilable version that saves the infos about
 // fieldnumbers etc and allows faster queriing
 func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interface{}) (int, error) {
-	if !meta.Slice.Check(result) {
-		return 0, fmt.Errorf("result is no slice")
-	}
+	/*
+		if !meta.Slice.Check(result) {
+			return 0, fmt.Errorf("result is no slice")
+		}
+	*/
 	slic := reflect.ValueOf(result)
 	l := slic.Len()
 	if l == 0 {
 		return 0, fmt.Errorf("result slice has length 0")
 	}
-	tags := meta.Struct.Tags(slic.Index(0).Interface())
+
+	stru, err := meta.StructByValue(slic.Index(0))
+	if err != nil {
+		return 0, err
+	}
+
+	tags, err2 := stru.Tags()
+
+	if err2 != nil {
+		return 0, err2
+	}
+
+	// tags := meta.Struct.Tags(slic.Index(0).Interface())
 	options := []interface{}{Limit(l)}
 	order := []string{}
 
@@ -1341,7 +1368,14 @@ func (ø *Row) SelectByStructs(result interface{}, tagVal string, opts ...interf
 }
 
 func (ø *Row) SelectByStruct(structPtr interface{}, tagVal string, opts ...interface{}) error {
-	tags := meta.Struct.Tags(structPtr)
+	str, err := meta.StructByValue(meta.FinalValue(structPtr))
+	if err != nil {
+		return err
+	}
+	tags, err2 := str.Tags()
+	if err2 != nil {
+		return err2
+	}
 	options := []interface{}{}
 	order := []string{}
 
