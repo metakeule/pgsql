@@ -10,6 +10,7 @@ import (
 	"gopkg.in/go-on/lib.v2/internal/fat"
 	"gopkg.in/metakeule/dbwrap.v2"
 	. "gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
 
 	"strings"
 	// "net/url"
@@ -24,8 +25,8 @@ func configureDB() string {
 	if dbconn := os.Getenv("PG_TEST"); dbconn != "" {
 		dbconnectString = dbconn
 	}
-	fmt.Printf("PG_TEST is %#v\n", os.Getenv("PG_TEST"))
-	fmt.Printf("dbconnectString is set to %#v\n", dbconnectString)
+	// fmt.Printf("PG_TEST is %#v\n", os.Getenv("PG_TEST"))
+	// fmt.Printf("dbconnectString is set to %#v\n", dbconnectString)
 	return dbconnectString
 }
 
@@ -363,8 +364,15 @@ func TestCRUDList(t *testing.T) {
 	`), false, "")
 
 	//CRUDCompany.Update(db, id2, parseQuery("Name=testlist2&Age=43&Ratings=[6,7,8]"))
+	// registry.Field
 
-	companyNameField := registry.Field("*github.com/metakeule/pgsql/rest.Company", "Name")
+	var c *Company = &Company{}
+	// ty := reflect.TypeOf(c)
+	// ty.
+	tyPath := pgsqlfat.TypeString(c) // ty.PkgPath() + ty.String()
+	// println(tyPath, "vs", "*github.com/metakeule/pgsql/rest.Company")
+	// "*github.com/metakeule/pgsql/rest.Company"
+	companyNameField := registry.Field(tyPath, "Name")
 
 	if companyNameField == nil {
 		panic("can't find field for COMPANY.Name")
