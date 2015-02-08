@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDFloatsTest *CRUD
 func init() {
 	registry.MustRegisterTable("floatstest", FLOATS_TEST)
 
-	db.Exec("DROP TABLE floatstest")
+	DB.Exec("DROP TABLE floatstest")
 
 	floatsTestTable := registry.TableOf(FLOATS_TEST)
-	_, e := db.Exec(floatsTestTable.Create().String())
+	_, e := DB.Exec(floatsTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table floatstest: \nError: %s\nSql: %s\n", e.Error(),
 			floatsTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestFloatsCreate(t *testing.T) {
-	id, err := CRUDFloatsTest.Create(db, b(`
+	id, err := CRUDFloatsTest.Create(DB, b(`
 	{
 		"Floats": [2.5,6]
 	}
@@ -52,7 +52,7 @@ func TestFloatsCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDFloatsTest.Read(db, id)
+	x, err = CRUDFloatsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created floatstest with id %s: %s", id, err)
@@ -70,7 +70,7 @@ func TestFloatsCreate(t *testing.T) {
 }
 
 func TestFloatsEmpty(t *testing.T) {
-	id, err := CRUDFloatsTest.Create(db, b(`
+	id, err := CRUDFloatsTest.Create(DB, b(`
 	{
 		"Floats": []
 	}
@@ -88,7 +88,7 @@ func TestFloatsEmpty(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDFloatsTest.Read(db, id)
+	x, err = CRUDFloatsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created floatstest with id %s: %s", id, err)
@@ -106,14 +106,14 @@ func TestFloatsEmpty(t *testing.T) {
 }
 
 func TestFloatsUpdate(t *testing.T) {
-	id, _ := CRUDFloatsTest.Create(db, b(`
+	id, _ := CRUDFloatsTest.Create(DB, b(`
 	{
 		"Floats": [2.2,2.5]
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDFloatsTest.Update(db, id, b(`
+	err := CRUDFloatsTest.Update(DB, id, b(`
 	{
 		"Floats": [2.5,6],
 		"FloatsNull": [2.5,2.2]
@@ -125,7 +125,7 @@ func TestFloatsUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDFloatsTest.Read(db, id)
+	x, err = CRUDFloatsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created floatstest with id %s: %s", id, err)

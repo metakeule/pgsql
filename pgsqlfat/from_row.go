@@ -10,7 +10,7 @@ import (
 	"gopkg.in/go-on/lib.v3/internal/fat"
 	"gopkg.in/go-on/lib.v3/internal/meta"
 	"gopkg.in/metakeule/fmtdate.v1"
-	. "gopkg.in/metakeule/pgsql.v5"
+	. "gopkg.in/metakeule/pgsql.v6"
 )
 
 var fatField *fat.Field

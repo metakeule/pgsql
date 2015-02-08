@@ -3,15 +3,16 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/go-on/builtin.v1/db"
 	"reflect"
 	"strconv"
 	"strings"
 
+	. "gopkg.in/metakeule/pgsql.v6"
 	"gopkg.in/go-on/lib.v3/internal/fat"
-	. "gopkg.in/metakeule/pgsql.v5"
 )
 
-func (r *CRUD) Create(db DB, json_ []byte, validateOnly bool, singleField string) (id string, err error) {
+func (r *CRUD) Create(d db.DB, json_ []byte, validateOnly bool, singleField string) (id string, err error) {
 	m := map[string]interface{}{}
 	err = json.Unmarshal(json_, &m)
 	if err != nil {
@@ -47,7 +48,7 @@ func (r *CRUD) Create(db DB, json_ []byte, validateOnly bool, singleField string
 		return
 	}
 
-	row := NewRow(db, r.table)
+	row := NewRow(d, r.table)
 	fs := reflect.ValueOf(fatstruc).Elem()
 
 	for _, fld := range fields {
@@ -118,8 +119,8 @@ func (r *CRUD) addWhereId(query []interface{}, id string) (q []interface{}, err 
 	return
 }
 
-func (r *CRUD) _Read(db DB, id string) (rr *Row, fields []string, err error) {
-	row := NewRow(db, r.table)
+func (r *CRUD) _Read(d db.DB, id string) (rr *Row, fields []string, err error) {
+	row := NewRow(d, r.table)
 	var query []interface{}
 	query, fields = r.queryParams("R")
 	query, err = r.addWhereId(query, id)
@@ -131,8 +132,8 @@ func (r *CRUD) _Read(db DB, id string) (rr *Row, fields []string, err error) {
 	return
 }
 
-func (r *CRUD) Read(db DB, id string) (m map[string]interface{}, err error) {
-	row := NewRow(db, r.table)
+func (r *CRUD) Read(d db.DB, id string) (m map[string]interface{}, err error) {
+	row := NewRow(d, r.table)
 	query, fields := r.queryParams("R")
 	query, err = r.addWhereId(query, id)
 	if err != nil {
@@ -164,14 +165,14 @@ func (r *CRUD) Read(db DB, id string) (m map[string]interface{}, err error) {
 	return
 }
 
-func (r *CRUD) Update(db DB, id string, json_ []byte, validateOnly bool, singleField string) (err error) {
+func (r *CRUD) Update(d db.DB, id string, json_ []byte, validateOnly bool, singleField string) (err error) {
 	m := map[string]interface{}{}
 	err = json.Unmarshal(json_, &m)
 	if err != nil {
 		return
 	}
 
-	row := NewRow(db, r.table)
+	row := NewRow(d, r.table)
 	query, fields := r.queryParams("U")
 	query, err = r.addWhereId(query, id)
 	if err != nil {
@@ -256,8 +257,8 @@ func (r *CRUD) Update(db DB, id string, json_ []byte, validateOnly bool, singleF
 	return row.Update()
 }
 
-func (r *CRUD) Delete(db DB, id string) error {
-	row := NewRow(db, r.table)
+func (r *CRUD) Delete(d db.DB, id string) error {
+	row := NewRow(d, r.table)
 	err := row.SetId(id)
 	if err != nil {
 		return &validationError{map[string]error{r.primaryKey.Name: err}}
@@ -272,11 +273,11 @@ func (r *CRUD) Delete(db DB, id string) error {
 // , rangeReq.Desc, sortBy, rangeReq.Start
 // total, objs, err := r.List(db, limit, rangeReq.Desc, sortBy, rangeReq.Start)
 
-func (r *CRUD) List(db DB, limit int, direction Direction, sortBy *Field, offset int) (total int, ms []map[string]interface{}, err error) {
+func (r *CRUD) List(d db.DB, limit int, direction Direction, sortBy *Field, offset int) (total int, ms []map[string]interface{}, err error) {
 	ms = []map[string]interface{}{}
-	row := NewRow(db, r.table)
+	row := NewRow(d, r.table)
 
-	countRow := db.QueryRow(Select(As(Sql(`count("`+r.primaryKey.Name+`")`), "no", IntType), r.table).Sql().String())
+	countRow := d.QueryRow(Select(As(Sql(`count("`+r.primaryKey.Name+`")`), "no", IntType), r.table).Sql().String())
 
 	err = countRow.Scan(&total)
 

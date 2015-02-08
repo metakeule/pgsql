@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+/*
 type DB interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
@@ -18,6 +19,7 @@ type DBComplete interface {
 	Close() (ſ error)
 	Begin() (tx *sql.Tx, ſ error)
 }
+*/
 
 /*
 func (ø *Row) setSearchPath() {

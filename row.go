@@ -3,6 +3,7 @@ package pgsql
 import (
 	"database/sql"
 	"fmt"
+	"gopkg.in/go-on/builtin.v1/db"
 	"reflect"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ type PostDelete func(*Row) error
 
 type Row struct {
 	*Table
-	DB           DB
+	DB           db.DB
 	Tx           *sql.Tx
 	values       map[*Field]*TypedValue
 	aliasValues  map[*AsStruct]*TypedValue
@@ -45,7 +46,7 @@ type Row struct {
 	PostDelete   []PostDelete
 }
 
-func NewRow(db DB, table *Table, hooks ...interface{}) (ø *Row) {
+func NewRow(d db.DB, table *Table, hooks ...interface{}) (ø *Row) {
 	ø = &Row{
 		Table:        table,
 		setErrors:    []error{},
@@ -61,11 +62,11 @@ func NewRow(db DB, table *Table, hooks ...interface{}) (ø *Row) {
 		PostDelete:   []PostDelete{},
 	}
 
-	tx, ok := db.(*sql.Tx)
+	tx, ok := d.(*sql.Tx)
 	if ok {
 		ø.SetTransaction(tx)
 	} else {
-		ø.SetDB(db.(DB))
+		ø.SetDB(d)
 	}
 
 	for _, h := range hooks {
@@ -1273,8 +1274,8 @@ func (ø *Row) QueryRow(query Query, args ...interface{}) (r *sql.Row) {
 	return
 }
 
-func (ø *Row) SetDB(db DB) {
-	ø.DB = db
+func (ø *Row) SetDB(d db.DB) {
+	ø.DB = d
 }
 
 func (ø *Row) SetTransaction(tx *sql.Tx) {

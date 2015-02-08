@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	. "gopkg.in/metakeule/pgsql.v5"
-	"gopkg.in/metakeule/pgsql.v5/examples/person"
+	. "gopkg.in/metakeule/pgsql.v6"
+	"gopkg.in/metakeule/pgsql.v6/examples/person"
 )
 
 var (

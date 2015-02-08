@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 	"testing"
 )
 
@@ -20,10 +20,10 @@ var CRUDBoolsTest *CRUD
 func init() {
 	registry.MustRegisterTable("boolstest", BOOLS_TEST)
 
-	db.Exec("DROP TABLE boolstest")
+	DB.Exec("DROP TABLE boolstest")
 
 	boolsTestTable := registry.TableOf(BOOLS_TEST)
-	_, e := db.Exec(boolsTestTable.Create().String())
+	_, e := DB.Exec(boolsTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table boolstest: \nError: %s\nSql: %s\n", e.Error(),
 			boolsTestTable.Create()))
@@ -33,7 +33,7 @@ func init() {
 }
 
 func TestBoolsCreate(t *testing.T) {
-	id, err := CRUDBoolsTest.Create(db, b(`
+	id, err := CRUDBoolsTest.Create(DB, b(`
 	{
 		"Bools": [true,false]
 	}
@@ -51,7 +51,7 @@ func TestBoolsCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDBoolsTest.Read(db, id)
+	x, err = CRUDBoolsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created boolstest with id %s: %s", id, err)
@@ -69,7 +69,7 @@ func TestBoolsCreate(t *testing.T) {
 }
 
 func TestBoolsEmpty(t *testing.T) {
-	id, err := CRUDBoolsTest.Create(db, b(`
+	id, err := CRUDBoolsTest.Create(DB, b(`
 	{
 		"Bools": []
 	}
@@ -87,7 +87,7 @@ func TestBoolsEmpty(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDBoolsTest.Read(db, id)
+	x, err = CRUDBoolsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created boolstest with id %s: %s", id, err)
@@ -105,14 +105,14 @@ func TestBoolsEmpty(t *testing.T) {
 }
 
 func TestBoolsUpdate(t *testing.T) {
-	id, _ := CRUDBoolsTest.Create(db, b(`
+	id, _ := CRUDBoolsTest.Create(DB, b(`
 	{
 		"Bools": [true,false]
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDBoolsTest.Update(db, id, b(`
+	err := CRUDBoolsTest.Update(DB, id, b(`
 	{
 		"Bools": [false,true],
 		"BoolsNull": [true,true]
@@ -124,7 +124,7 @@ func TestBoolsUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDBoolsTest.Read(db, id)
+	x, err = CRUDBoolsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created boolstest with id %s: %s", id, err)

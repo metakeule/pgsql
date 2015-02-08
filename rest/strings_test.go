@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDStringsTest *CRUD
 func init() {
 	registry.MustRegisterTable("stringstest", STRINGS_TEST)
 
-	db.Exec("DROP TABLE stringstest")
+	DB.Exec("DROP TABLE stringstest")
 
 	stringsTestTable := registry.TableOf(STRINGS_TEST)
-	_, e := db.Exec(stringsTestTable.Create().String())
+	_, e := DB.Exec(stringsTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table stringstest: \nError: %s\nSql: %s\n", e.Error(),
 			stringsTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestStringsCreate(t *testing.T) {
-	id, err := CRUDStringsTest.Create(db, b(`
+	id, err := CRUDStringsTest.Create(DB, b(`
 	{
 		"Strings": ["a u","b"]
 	}
@@ -52,7 +52,7 @@ func TestStringsCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDStringsTest.Read(db, id)
+	x, err = CRUDStringsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringstest with id %s: %s", id, err)
@@ -70,7 +70,7 @@ func TestStringsCreate(t *testing.T) {
 }
 
 func TestStringsEmpty(t *testing.T) {
-	id, err := CRUDStringsTest.Create(db, b(`
+	id, err := CRUDStringsTest.Create(DB, b(`
 	{
 		"Strings": []
 	}
@@ -88,7 +88,7 @@ func TestStringsEmpty(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDStringsTest.Read(db, id)
+	x, err = CRUDStringsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringstest with id %s: %s", id, err)
@@ -106,14 +106,14 @@ func TestStringsEmpty(t *testing.T) {
 }
 
 func TestStringsUpdate(t *testing.T) {
-	id, _ := CRUDStringsTest.Create(db, b(`
+	id, _ := CRUDStringsTest.Create(DB, b(`
 	{
 		"Strings": ["c","b"]
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDStringsTest.Update(db, id, b(`
+	err := CRUDStringsTest.Update(DB, id, b(`
 	{
 		"Strings": ["d","g"],
 		"StringsNull": ["a ","x"]
@@ -125,7 +125,7 @@ func TestStringsUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDStringsTest.Read(db, id)
+	x, err = CRUDStringsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringstest with id %s: %s", id, err)

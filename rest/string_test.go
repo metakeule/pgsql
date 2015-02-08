@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDStringTest *CRUD
 func init() {
 	registry.MustRegisterTable("stringtest", STRING_TEST)
 
-	db.Exec("DROP TABLE stringtest")
+	DB.Exec("DROP TABLE stringtest")
 
 	stringTestTable := registry.TableOf(STRING_TEST)
-	_, e := db.Exec(stringTestTable.Create().String())
+	_, e := DB.Exec(stringTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table stringtest: \nError: %s\nSql: %s\n", e.Error(),
 			stringTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestStringCreate(t *testing.T) {
-	id, err := CRUDStringTest.Create(db, b(`
+	id, err := CRUDStringTest.Create(DB, b(`
 	{
 		"String": "hello"
 	}
@@ -52,7 +52,7 @@ func TestStringCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDStringTest.Read(db, id)
+	x, err = CRUDStringTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringtest with id %s: %s", id, err)
@@ -70,14 +70,14 @@ func TestStringCreate(t *testing.T) {
 }
 
 func TestStringUpdate(t *testing.T) {
-	id, _ := CRUDStringTest.Create(db, b(`
+	id, _ := CRUDStringTest.Create(DB, b(`
 	{
 		"String": "hi"
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDStringTest.Update(db, id, b(`
+	err := CRUDStringTest.Update(DB, id, b(`
 	{
 		"String": "hello",
 		"StringNull": "world"
@@ -89,7 +89,7 @@ func TestStringUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDStringTest.Read(db, id)
+	x, err = CRUDStringTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created stringtest with id %s: %s", id, err)

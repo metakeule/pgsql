@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDTimeTest *CRUD
 func init() {
 	registry.MustRegisterTable("timetest", TIME_TEST)
 
-	db.Exec("DROP TABLE timetest")
+	DB.Exec("DROP TABLE timetest")
 
 	timeTestTable := registry.TableOf(TIME_TEST)
-	_, e := db.Exec(timeTestTable.Create().String())
+	_, e := DB.Exec(timeTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table timetest: \nError: %s\nSql: %s\n", e.Error(),
 			timeTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestTimeCreate(t *testing.T) {
-	id, err := CRUDTimeTest.Create(db, b(`
+	id, err := CRUDTimeTest.Create(DB, b(`
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
@@ -52,7 +52,7 @@ func TestTimeCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDTimeTest.Read(db, id)
+	x, err = CRUDTimeTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created timetest with id %s: %s", id, err)
@@ -70,14 +70,14 @@ func TestTimeCreate(t *testing.T) {
 }
 
 func TestTimeUpdate(t *testing.T) {
-	id, _ := CRUDTimeTest.Create(db, b(`
+	id, _ := CRUDTimeTest.Create(DB, b(`
 	{
 		"Time": "2001-02-13T23:04:45Z"
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDTimeTest.Update(db, id, b(`
+	err := CRUDTimeTest.Update(DB, id, b(`
 	{
 		"Time": "2011-12-13T23:04:45Z",
 		"TimeNull": "2011-12-13T23:04:45+03:00"
@@ -89,7 +89,7 @@ func TestTimeUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDTimeTest.Read(db, id)
+	x, err = CRUDTimeTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created timetest with id %s: %s", id, err)

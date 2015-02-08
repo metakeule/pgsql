@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 	"testing"
 )
 
@@ -20,10 +20,10 @@ var CRUDBoolTest *CRUD
 func init() {
 	registry.MustRegisterTable("booltest", BOOL_TEST)
 
-	db.Exec("DROP TABLE booltest")
+	DB.Exec("DROP TABLE booltest")
 
 	boolTestTable := registry.TableOf(BOOL_TEST)
-	_, e := db.Exec(boolTestTable.Create().String())
+	_, e := DB.Exec(boolTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table booltest: \nError: %s\nSql: %s\n", e.Error(),
 			boolTestTable.Create()))
@@ -33,7 +33,7 @@ func init() {
 }
 
 func TestBoolCreate(t *testing.T) {
-	id, err := CRUDBoolTest.Create(db, b(`
+	id, err := CRUDBoolTest.Create(DB, b(`
 	{
 		"Bool": true
 	}
@@ -51,7 +51,7 @@ func TestBoolCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDBoolTest.Read(db, id)
+	x, err = CRUDBoolTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created booltest with id %s: %s", id, err)
@@ -69,14 +69,14 @@ func TestBoolCreate(t *testing.T) {
 }
 
 func TestBoolUpdate(t *testing.T) {
-	id, _ := CRUDBoolTest.Create(db, b(`
+	id, _ := CRUDBoolTest.Create(DB, b(`
 	{
 		"Bool": true
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDBoolTest.Update(db, id, b(`
+	err := CRUDBoolTest.Update(DB, id, b(`
 	{
 		"Bool": false,
 		"BoolNull": true
@@ -88,7 +88,7 @@ func TestBoolUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDBoolTest.Read(db, id)
+	x, err = CRUDBoolTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created booltest with id %s: %s", id, err)

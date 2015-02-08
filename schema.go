@@ -3,6 +3,7 @@ package pgsql
 import (
 	"database/sql"
 	"fmt"
+	"gopkg.in/go-on/builtin.v1/db"
 	"strings"
 )
 
@@ -41,16 +42,16 @@ func (ø *Schema) Sql() SqlType {
 
 type SchemaDB struct {
 	name string
-	db   DBComplete
+	db   db.DBComplete
 }
 
-func NewSchemaDB(db DBComplete, schemaname string) *SchemaDB {
-	return &SchemaDB{schemaname, db}
+func NewSchemaDB(d db.DBComplete, schemaname string) *SchemaDB {
+	return &SchemaDB{schemaname, d}
 }
 
 // Transaction receives a function that gets a transaction and returns an error
 // it starts a transaction, sets the search path to the schemaname
-func (s *SchemaDB) Transaction(fn func(DB) error) error {
+func (s *SchemaDB) Transaction(fn func(db.DB) error) error {
 	tx, err := s.begin()
 	if err != nil {
 		return err

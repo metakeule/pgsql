@@ -1,21 +1,22 @@
 package rest
 
 import (
+	"gopkg.in/go-on/builtin.v1/db"
 	"gopkg.in/go-on/router.v2/route"
-	. "gopkg.in/metakeule/pgsql.v5"
-	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
+	// . "gopkg.in/metakeule/pgsql.v6"
+	"gopkg.in/metakeule/pgsql.v6/pgsqlfat"
 
 	"gopkg.in/go-on/router.v2"
 )
 
 type rest struct {
-	db     DB
+	db     db.DB
 	Router *router.Router
 	*pgsqlfat.Registry
 }
 
-func NewREST(db DB, reg *pgsqlfat.Registry, rt *router.Router) *rest {
-	return &rest{db, rt, reg}
+func NewREST(d db.DB, reg *pgsqlfat.Registry, rt *router.Router) *rest {
+	return &rest{d, rt, reg}
 }
 
 type action int

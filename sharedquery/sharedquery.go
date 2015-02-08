@@ -30,7 +30,7 @@ package sharedquery
 import (
 	"database/sql"
 	"fmt"
-	"gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v6"
 	"reflect"
 	"runtime"
 	"strings"

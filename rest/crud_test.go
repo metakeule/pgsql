@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os"
 
+	. "gopkg.in/metakeule/pgsql.v6"
+	"gopkg.in/metakeule/pgsql.v6/pgsqlfat"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 	"gopkg.in/metakeule/dbwrap.v2"
-	. "gopkg.in/metakeule/pgsql.v5"
-	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
 
 	"strings"
 	// "net/url"
@@ -21,7 +21,7 @@ import (
 )
 
 func configureDB() string {
-	dbconnectString := "postgres://docker:docker@172.17.0.2:5432/pgsqltest"
+	dbconnectString := "postgres://docker:docker@127.0.0.1:5432/pgsqltest?sslmode=disable"
 	if dbconn := os.Getenv("PG_TEST"); dbconn != "" {
 		dbconnectString = dbconn
 	}
@@ -144,16 +144,18 @@ func makeDB() *sql.DB {
 	return connect(wrapperDriverName, dbconnectString)
 }
 
-var db = makeDB()
+var DB = makeDB()
+var _, _ = DB.Exec(`CREATE EXTENSION "uuid-ossp"`)
 
 func init() {
+
 	//db := makeDB()
 	registry.MustRegisterTable("company", COMPANY)
 
-	db.Exec("DROP TABLE company")
+	DB.Exec("DROP TABLE company")
 
 	companyTable := registry.TableOf(COMPANY)
-	_, e := db.Exec(companyTable.Create().String())
+	_, e := DB.Exec(companyTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table company: \nError: %s\nSql: %s\n", e.Error(), companyTable.Create()))
 	}
@@ -176,7 +178,7 @@ func b(in string) []byte { return []byte(in) }
 
 func TestCRUDCreate(t *testing.T) {
 	//id, err := CRUDCompany.Create(db, parseQuery(`Name=testcreate&Age=42&UpdatedAt=2013-12-12 02:10:02`))
-	id, err := CRUDCompany.Create(db, b(`
+	id, err := CRUDCompany.Create(DB, b(`
 	{
 		"Name": "testcreate",
 		"Age": 42,
@@ -196,7 +198,7 @@ func TestCRUDCreate(t *testing.T) {
 
 	var comp map[string]interface{}
 
-	comp, err = CRUDCompany.Read(db, id)
+	comp, err = CRUDCompany.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created company with id %s: %s", id, err)
@@ -225,8 +227,8 @@ func TestCRUDCreate(t *testing.T) {
 }
 
 func TestCRUDUpdate(t *testing.T) {
-	//id, _ := CRUDCompany.Create(db, parseQuery("Name=testupdate&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id, _ := CRUDCompany.Create(db, b(`
+	//id, _ := CRUDCompany.Create(DB, parseQuery("Name=testupdate&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id, _ := CRUDCompany.Create(DB, b(`
 	{
 		"Name": "testupdate",
 		"Age": 42,
@@ -237,11 +239,11 @@ func TestCRUDUpdate(t *testing.T) {
 	var comp map[string]interface{}
 	//	fmt.Printf("uuid: %#v\n", id)
 
-	//	err := CRUDCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-01 00:00:02"))
+	//	err := CRUDCompany.Update(DB, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]&UpdatedAt=2014-01-01 00:00:02"))
 
-	//err := CRUDCompany.Update(db, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]"))
+	//err := CRUDCompany.Update(DB, id, parseQuery("Name=testupdatechanged&Age=43&Ratings=[0,6,7]&Tags=[\"a\",\"b\"]"))
 	/*
-		err := CRUDCompany.Update(db, id, b(`
+		err := CRUDCompany.Update(DB, id, b(`
 		{
 			"Name": "testupdatechanged",
 			"Age": 43,
@@ -251,7 +253,7 @@ func TestCRUDUpdate(t *testing.T) {
 		`))
 	*/
 
-	err := CRUDCompany.Update(db, id, b(`
+	err := CRUDCompany.Update(DB, id, b(`
 	{
 		"Name": "testupdatechanged",
 		"Age": 43
@@ -263,7 +265,7 @@ func TestCRUDUpdate(t *testing.T) {
 		return
 	}
 
-	comp, err = CRUDCompany.Read(db, id)
+	comp, err = CRUDCompany.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created company with id %s: %s", id, err)
@@ -295,21 +297,21 @@ func TestCRUDUpdate(t *testing.T) {
 }
 
 func TestCRUDDelete(t *testing.T) {
-	//id, _ := CRUDCompany.Create(db, parseQuery("Name=testdelete&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id, _ := CRUDCompany.Create(db, b(`
+	//id, _ := CRUDCompany.Create(DB, parseQuery("Name=testdelete&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id, _ := CRUDCompany.Create(DB, b(`
 	{
 		"Name": "testdelete",
 		"Age": 42,
 		"UpdatedAt": "2013-12-12T02:10:02Z"
 	}
 	`), false, "")
-	err := CRUDCompany.Delete(db, id)
+	err := CRUDCompany.Delete(DB, id)
 	if err != nil {
 		t.Errorf("can't delete company with id %s: %s", id, err)
 		return
 	}
 
-	_, err = CRUDCompany.Read(db, id)
+	_, err = CRUDCompany.Read(DB, id)
 
 	if err == nil {
 		t.Errorf("can get deleted company with id %s, but should not", id)
@@ -318,9 +320,9 @@ func TestCRUDDelete(t *testing.T) {
 }
 
 func TestCRUDList(t *testing.T) {
-	db.Exec("delete from company")
-	//	id1, _ := CRUDCompany.Create(db, parseQuery("Name=testlist1&Age=42&UpdatedAt=2013-12-12 02:10:02"))
-	id1, err := CRUDCompany.Create(db, b(`
+	DB.Exec("delete from company")
+	//	id1, _ := CRUDCompany.Create(DB, parseQuery("Name=testlist1&Age=42&UpdatedAt=2013-12-12 02:10:02"))
+	id1, err := CRUDCompany.Create(DB, b(`
 	{
 		"Name": "testlist1",
 		"Age": 42,
@@ -331,9 +333,9 @@ func TestCRUDList(t *testing.T) {
 	if err != nil {
 		panic(err.Error())
 	}
-	//	id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43&UpdatedAt=2013-01-30 02:10:02"))
-	//id2, _ := CRUDCompany.Create(db, parseQuery("Name=testlist2&Age=43"))
-	id2, err2 := CRUDCompany.Create(db, b(`
+	//	id2, _ := CRUDCompany.Create(DB, parseQuery("Name=testlist2&Age=43&UpdatedAt=2013-01-30 02:10:02"))
+	//id2, _ := CRUDCompany.Create(DB, parseQuery("Name=testlist2&Age=43"))
+	id2, err2 := CRUDCompany.Create(DB, b(`
 	{
 		"Name": "testlist2",
 		"Age": 43
@@ -355,7 +357,7 @@ func TestCRUDList(t *testing.T) {
 	// }
 	// `))
 
-	CRUDCompany.Update(db, id1, b(`
+	CRUDCompany.Update(DB, id1, b(`
 	{
 		"Name": "testlist1",
 		"Age": 42,
@@ -378,7 +380,7 @@ func TestCRUDList(t *testing.T) {
 		panic("can't find field for COMPANY.Name")
 	}
 
-	total, comps, err := CRUDCompany.List(db, 10, ASC, companyNameField, 0)
+	total, comps, err := CRUDCompany.List(DB, 10, ASC, companyNameField, 0)
 	// comps, err := CRUDCompany.List(db, 10, OrderBy(companyNameField, ASC))
 
 	if err != nil {

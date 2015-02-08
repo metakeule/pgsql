@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/go-on/builtin.v1/db"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -11,15 +12,15 @@ import (
 
 	"gopkg.in/go-on/router.v2/route"
 
+	. "gopkg.in/metakeule/pgsql.v6"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 	"gopkg.in/go-on/router.v2"
 	"gopkg.in/go-on/wrap-contrib-testing.v2/wrapstesting"
-	. "gopkg.in/metakeule/pgsql.v5"
 )
 
 type Mounter struct {
 	CRUD        *CRUD
-	db          DB
+	db          db.DB
 	mountPoint  string
 	placeholder string
 	Router      *router.Router
@@ -57,13 +58,13 @@ func (o *options) SetSortFields(sortFields ...*fat.Field) *options {
 }
 
 // default maxLimit is 100, may be changed with SetListOptions
-func Mount(r *CRUD, db DB, rt *router.Router, mountPoint string, options *options) *Mounter {
+func Mount(r *CRUD, d db.DB, rt *router.Router, mountPoint string, options *options) *Mounter {
 	if options == nil {
 		options = MaxLimit(100)
 	}
 	return &Mounter{
 		CRUD:        r,
-		db:          db,
+		db:          d,
 		mountPoint:  mountPoint,
 		placeholder: mountPoint + "_id",
 		Router:      rt,

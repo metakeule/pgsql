@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDMapTest *CRUD
 func init() {
 	registry.MustRegisterTable("maptest", MAP_TEST)
 
-	db.Exec("DROP TABLE maptest")
+	DB.Exec("DROP TABLE maptest")
 
 	mapTestTable := registry.TableOf(MAP_TEST)
-	_, e := db.Exec(mapTestTable.Create().String())
+	_, e := DB.Exec(mapTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table maptest: \nError: %s\nSql: %s\n", e.Error(),
 			mapTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestMapCreate(t *testing.T) {
-	id, err := CRUDMapTest.Create(db, b(`
+	id, err := CRUDMapTest.Create(DB, b(`
 	{
 		"Map": {"a":"b"}
 	}
@@ -52,7 +52,7 @@ func TestMapCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDMapTest.Read(db, id)
+	x, err = CRUDMapTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created maptest with id %s: %s", id, err)
@@ -70,14 +70,14 @@ func TestMapCreate(t *testing.T) {
 }
 
 func TestMapUpdate(t *testing.T) {
-	id, _ := CRUDMapTest.Create(db, b(`
+	id, _ := CRUDMapTest.Create(DB, b(`
 	{
 		"Map": {"b":"c"}
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDMapTest.Update(db, id, b(`
+	err := CRUDMapTest.Update(DB, id, b(`
 	{
 		"Map": {"d":"e"},
 		"MapNull": {"f":5}
@@ -89,7 +89,7 @@ func TestMapUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDMapTest.Read(db, id)
+	x, err = CRUDMapTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created maptest with id %s: %s", id, err)

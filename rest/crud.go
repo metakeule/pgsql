@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	. "gopkg.in/metakeule/pgsql.v6"
+	"gopkg.in/metakeule/pgsql.v6/pgsqlfat"
+	"gopkg.in/go-on/builtin.v1/db"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 	"gopkg.in/go-on/lib.v3/internal/meta"
 	"gopkg.in/go-on/router.v2"
 	"gopkg.in/metakeule/fmtdate.v1"
-	. "gopkg.in/metakeule/pgsql.v5"
-	"gopkg.in/metakeule/pgsql.v5/pgsqlfat"
 	// "net/url"
 	"reflect"
 	"strings"
@@ -44,8 +45,8 @@ func NewCRUD(registry *pgsqlfat.Registry, proto interface{}) (c *CRUD) {
 	return
 }
 
-func (r *CRUD) Mount(db DB, rt *router.Router, mountPoint string, options *options) *Mounter {
-	return Mount(r, db, rt, mountPoint, options)
+func (r *CRUD) Mount(d db.DB, rt *router.Router, mountPoint string, options *options) *Mounter {
+	return Mount(r, d, rt, mountPoint, options)
 }
 
 func (r *CRUD) scanFields() (err error) {

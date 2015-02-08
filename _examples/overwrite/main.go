@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	. "gopkg.in/metakeule/pgsql.v5/examples/overwrite/person"
+	. "gopkg.in/metakeule/pgsql.v6/examples/overwrite/person"
 )
 
 type Beatle Person

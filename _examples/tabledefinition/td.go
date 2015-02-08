@@ -6,7 +6,7 @@ import (
 	"fmt"
 	//"github.com/mattn/go-sqlite3"
 	"gopkg.in/metakeule/dbwrap.v2"
-	"gopkg.in/metakeule/pgsql.v5"
+	"gopkg.in/metakeule/pgsql.v6"
 )
 
 type areaTable struct {

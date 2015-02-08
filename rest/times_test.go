@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDTimesTest *CRUD
 func init() {
 	registry.MustRegisterTable("timestest", TIMES_TEST)
 
-	db.Exec("DROP TABLE timestest")
+	DB.Exec("DROP TABLE timestest")
 
 	timesTestTable := registry.TableOf(TIMES_TEST)
-	_, e := db.Exec(timesTestTable.Create().String())
+	_, e := DB.Exec(timesTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table timestest: \nError: %s\nSql: %s\n", e.Error(),
 			timesTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestTimesCreate(t *testing.T) {
-	id, err := CRUDTimesTest.Create(db, b(`
+	id, err := CRUDTimesTest.Create(DB, b(`
 	{
 		"Times": ["2001-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
 	}
@@ -52,7 +52,7 @@ func TestTimesCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDTimesTest.Read(db, id)
+	x, err = CRUDTimesTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created timestest with id %s: %s", id, err)
@@ -70,7 +70,7 @@ func TestTimesCreate(t *testing.T) {
 }
 
 func TestTimesEmpty(t *testing.T) {
-	id, err := CRUDTimesTest.Create(db, b(`
+	id, err := CRUDTimesTest.Create(DB, b(`
 	{
 		"Times": []
 	}
@@ -88,7 +88,7 @@ func TestTimesEmpty(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDTimesTest.Read(db, id)
+	x, err = CRUDTimesTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created timestest with id %s: %s", id, err)
@@ -106,14 +106,14 @@ func TestTimesEmpty(t *testing.T) {
 }
 
 func TestTimesUpdate(t *testing.T) {
-	id, _ := CRUDTimesTest.Create(db, b(`
+	id, _ := CRUDTimesTest.Create(DB, b(`
 	{
 		"Times": ["2001-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDTimesTest.Update(db, id, b(`
+	err := CRUDTimesTest.Update(DB, id, b(`
 	{
 		"Times": ["2001-04-13T23:04:45Z","2011-12-13T23:04:45Z"],
 		"TimesNull": ["2006-02-13T23:04:45Z","2011-02-13T23:04:45Z"]
@@ -125,7 +125,7 @@ func TestTimesUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDTimesTest.Read(db, id)
+	x, err = CRUDTimesTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created timestest with id %s: %s", id, err)

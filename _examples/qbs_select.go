@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"gopkg.in/go-on/pq.v2"
-	. "gopkg.in/metakeule/pgsql.v5"
+	. "gopkg.in/metakeule/pgsql.v6"
 	"os"
 	// "reflect"
 )

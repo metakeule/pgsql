@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDFloatTest *CRUD
 func init() {
 	registry.MustRegisterTable("floattest", FLOAT_TEST)
 
-	db.Exec("DROP TABLE floattest")
+	DB.Exec("DROP TABLE floattest")
 
 	floatTestTable := registry.TableOf(FLOAT_TEST)
-	_, e := db.Exec(floatTestTable.Create().String())
+	_, e := DB.Exec(floatTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table floattest: \nError: %s\nSql: %s\n", e.Error(),
 			floatTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestFloatCreate(t *testing.T) {
-	id, err := CRUDFloatTest.Create(db, b(`
+	id, err := CRUDFloatTest.Create(DB, b(`
 	{
 		"Float": 2.5
 	}
@@ -52,7 +52,7 @@ func TestFloatCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDFloatTest.Read(db, id)
+	x, err = CRUDFloatTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created floattest with id %s: %s", id, err)
@@ -70,14 +70,14 @@ func TestFloatCreate(t *testing.T) {
 }
 
 func TestFloatUpdate(t *testing.T) {
-	id, _ := CRUDFloatTest.Create(db, b(`
+	id, _ := CRUDFloatTest.Create(DB, b(`
 	{
 		"Float": 2.2
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDFloatTest.Update(db, id, b(`
+	err := CRUDFloatTest.Update(DB, id, b(`
 	{
 		"Float": 6,
 		"FloatNull": 2.5
@@ -89,7 +89,7 @@ func TestFloatUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDFloatTest.Read(db, id)
+	x, err = CRUDFloatTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created floattest with id %s: %s", id, err)

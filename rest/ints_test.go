@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/go-on/lib.v3/internal/fat"
 
-	// . "gopkg.in/metakeule/pgsql.v5"
+	// . "gopkg.in/metakeule/pgsql.v6"
 
 	"testing"
 )
@@ -21,10 +21,10 @@ var CRUDIntsTest *CRUD
 func init() {
 	registry.MustRegisterTable("intstest", INTS_TEST)
 
-	db.Exec("DROP TABLE intstest")
+	DB.Exec("DROP TABLE intstest")
 
 	intsTestTable := registry.TableOf(INTS_TEST)
-	_, e := db.Exec(intsTestTable.Create().String())
+	_, e := DB.Exec(intsTestTable.Create().String())
 	if e != nil {
 		panic(fmt.Sprintf("Can't create table intstest: \nError: %s\nSql: %s\n", e.Error(),
 			intsTestTable.Create()))
@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestIntsCreate(t *testing.T) {
-	id, err := CRUDIntsTest.Create(db, b(`
+	id, err := CRUDIntsTest.Create(DB, b(`
 	{
 		"Ints": [2,3]
 	}
@@ -52,7 +52,7 @@ func TestIntsCreate(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDIntsTest.Read(db, id)
+	x, err = CRUDIntsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created intstest with id %s: %s", id, err)
@@ -70,7 +70,7 @@ func TestIntsCreate(t *testing.T) {
 }
 
 func TestIntsEmpty(t *testing.T) {
-	id, err := CRUDIntsTest.Create(db, b(`
+	id, err := CRUDIntsTest.Create(DB, b(`
 	{
 		"Ints": []
 	}
@@ -88,7 +88,7 @@ func TestIntsEmpty(t *testing.T) {
 
 	var x map[string]interface{}
 
-	x, err = CRUDIntsTest.Read(db, id)
+	x, err = CRUDIntsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created intstest with id %s: %s", id, err)
@@ -105,14 +105,14 @@ func TestIntsEmpty(t *testing.T) {
 }
 
 func TestIntsUpdate(t *testing.T) {
-	id, _ := CRUDIntsTest.Create(db, b(`
+	id, _ := CRUDIntsTest.Create(DB, b(`
 	{
 		"Ints": [1,2]
 	}
 	`), false, "")
 
 	var x map[string]interface{}
-	err := CRUDIntsTest.Update(db, id, b(`
+	err := CRUDIntsTest.Update(DB, id, b(`
 	{
 		"Ints": [4,5],
 		"IntsNull": [3,5]
@@ -124,7 +124,7 @@ func TestIntsUpdate(t *testing.T) {
 		return
 	}
 
-	x, err = CRUDIntsTest.Read(db, id)
+	x, err = CRUDIntsTest.Read(DB, id)
 
 	if err != nil {
 		t.Errorf("can't get created intstest with id %s: %s", id, err)
